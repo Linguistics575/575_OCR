@@ -2,6 +2,11 @@ import PyPDF2 as pdf
 import argparse
 import sys
 
+# Python script to extract embedded text from paged PDF files.
+# Files to be extracted can be listed in the command line.
+# The resulting text files are output to identically named files, with "_text.txt" appended instead of ".pdf"
+# The suffix being appended may be modified with the "-x" command line option.
+
 def text_filename(filename, suffix):
     return '%s%s.txt' % (filename[0:filename.rfind('.pdf')], suffix)
 
