@@ -1,0 +1,25 @@
+import PyPDF2 as pdf
+import argparse
+import sys
+
+def text_filename(filename, suffix):
+    return '%s%s.txt' % (filename[0:filename.rfind('.pdf')], suffix)
+
+argparser = argparse.ArgumentParser(description='Extract existing text pages from a PDF file')
+argparser.add_argument('filename', metavar='F', nargs='+', help='PDF File')
+argparser.add_argument('-x', default='_text', help='Suffix to place on *.txt file (Defaults to "_text")')
+
+args = argparser.parse_args()
+
+for fname in args.filename:
+    pdfFile = open(fname, 'rb')
+    outFile = open(text_filename(fname, args.x), 'w')
+    pdfreader = pdf.PdfFileReader(pdfFile)
+
+    sys.stdout.write('%s ==> %s, %d pages\n' % (fname, text_filename(fname, args.x), pdfreader.numPages))
+    for pg in range(pdfreader.numPages):
+        pageObj = pdfreader.getPage(pg)
+
+        outFile.write('\n===\npg. %d\n---\n%s\n' % (pg+1, pageObj.extractText()))
+        sys.stdout.write('%d ' % (pg+1))
+        sys.stdout.flush()
