@@ -5,6 +5,7 @@ import cv2
 import json
 import numpy as np
 import operator
+import re
 import requests
 import time
 import yaml
@@ -18,7 +19,21 @@ from sys import stderr
 def get_output_image(result_json, data):
     '''
     return a pyplt image in which the OCR hypothesis in result_json has been
-    superimposed over the image represented by data
+    superimposed in their corresponding locations over the image represented
+    by data
+
+    Parameters:
+    -----------
+        result_json : dict
+            json result as returned from api
+
+        data : bytes
+            bytes representing the image
+
+    Returns:
+    --------
+        plt : pyplot
+            matplotlib image in which OCR hypothesis have been superimposed
     '''
     print("preparing output image.", file=stderr, flush=True)
 
@@ -60,7 +75,12 @@ def get_output_image(result_json, data):
 
 class HandwritingRecognizer():
     '''
-    TODO
+    HandwritingRecognizer class
+
+    Parameters:
+    -----------
+        config_file : str
+            path to config file containing url and subscription key for API
     '''
     def __init__(self, config_file):
         self.config_file = config_file
@@ -71,6 +91,9 @@ class HandwritingRecognizer():
         return "HandwritingRecognizer(config_file={}".format(self.config_file)
 
     def parse_config_file(self):
+        '''
+        Parse config file and set attributes
+        '''
         with open(self.config_file, 'r') as f:
             config = yaml.load(f)
 
@@ -90,18 +113,25 @@ class HandwritingRecognizer():
         # does it matter if 'Content-Type' is there?
         self._retrieval_headers = {'Ocp-Apim-Subscription-Key': self._key}
 
-    def process_request(self, data):
+    def submit_request(self, data):
         """
         Helper function to process the request to API
         copy-and-paste-and modify from the notebook
 
         Parameters:
-        data: Used when processing image read from disk. See API Documentation
+        -----------
+            data : bytes
+                bytes representing image read from disk.
+
+        Returns:
+        --------
+            operation_location : str
+                operation location (url) from which OCR result can be retrieved
         """
         print('submitting request to API.', file=stderr, flush=True)
 
         retries = 0
-        result = None
+        operation_location = None
 
         while True:
             response = requests.request('post', self._url, data=data,
@@ -109,8 +139,21 @@ class HandwritingRecognizer():
                                         params=self._request_params)
 
             if response.status_code == 429:
-                print("Message: %s" % (response.json()),
-                      file=stderr, flush=True)
+                print(response.json(), file=stderr, flush=True)
+                try:
+                    '''
+                    It looks like sometimes this is a message saying that the
+                    "rate limit has been exceeded."" So we find out how long it
+                    wants us to wait, and we wait.
+                    '''
+                    message = response.json()['message']
+                    waittime = re.search(r'Try again in (\d+) seconds',
+                                         message).group(1)
+                    print("waiting {} seconds".format(waittime), file=stderr)
+                    time.sleep(int(waittime))
+                except (AttributeError, KeyError):
+                    pass
+
                 if retries <= self._max_num_retries:
                     time.sleep(1)
                     retries += 1
@@ -121,21 +164,23 @@ class HandwritingRecognizer():
                           file=stderr, flush=True)
                     break
             elif response.status_code == 202:
-                result = response.headers['Operation-Location']
+                operation_location = response.headers['Operation-Location']
             else:
                 print("Error code: %d" % (response.status_code),
                       file=stderr, flush=True)
                 print("Message: %s" % (response.json()),
                       file=stderr, flush=True)
             break
-        return result
+        return operation_location
 
     def get_text_result(self, operation_location):
         """
-        Helper function to get text result from operation location
+        Helper function to get text result from operation location after API
+        call.  Mostly a copy-and-paste from notebook
 
         Parameters:
-        operationLocation: operationLocation to get text result, See API Documentation
+        ------------
+            operation_location: operationLocation to get text result
         """
         retries = 0
         result = None
@@ -144,8 +189,21 @@ class HandwritingRecognizer():
             response = requests.request('get', operation_location,
                                         headers=self._retrieval_headers)
             if response.status_code == 429:
-                print("Message: %s" % (response.json()),
-                      file=stderr, flush=True)
+                print(response.json(), file=stderr, flush=True)
+                try:
+                    '''
+                    It looks like sometimes this is a message saying that the
+                    "rate limit has been exceeded."" So we find out how long it
+                    wants us to wait, and we wait.
+                    '''
+                    message = response.json()['message']
+                    waittime = re.search(r'Try again in (\d+) seconds',
+                                         message).group(1)
+                    print("waiting {} seconds".format(waittime), file=stderr)
+                    time.sleep(int(waittime))
+                except (AttributeError, KeyError):
+                    pass
+
                 if retries <= self._max_num_retries:
                     time.sleep(1)
                     retries += 1
@@ -174,7 +232,7 @@ class HandwritingRecognizer():
                 for line
                 in result['recognitionResult']['lines']]
 
-    def process_image(self, data):
+    def process_image_data(self, data):
         '''
         make the API call and return the result
 
@@ -185,9 +243,16 @@ class HandwritingRecognizer():
 
         Returns:
         --------
+            output_image : pyplt
+                matplotlib figure of original image with OCR hypotheses
+                superimposed in their locations
+            output_lines : list of str
+                list of OCR hypotheses corresponding to lines
+            result : dict
+                json representing the API response.
         '''
         result = None
-        operation_location = self.process_request(data)
+        operation_location = self.submit_request(data)
 
         if operation_location is not None:
 
@@ -210,44 +275,38 @@ class HandwritingRecognizer():
         return (output_image, output_lines, result)
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="quick and dirty wrapper for Microsoft Azure Handwriting "
-                    "Recognition API")
-    parser.add_argument('config_file',
-                        help="config file containing API URL and "
-                             "subscription key")
-    parser.add_argument('input_image')
-    parser.add_argument('output_directory', help="defaults to curdir",
-                        default=path.curdir, nargs="?")
-    args = parser.parse_args()
-
+def process_image_file(image_file, recognizer, output_directory):
     '''
-    class args: pass
-    args.config_file = 'config.yml'
-    args.input_image = r'/media/jbruno/big_media/575_data/LFH_test_images/IMG_8796_halfed.jpg'
+    read in a file and process it, calling the API
 
-    self = HandwritingRecognizer(args.config_file)
+    Parameters:
+    -----------
+        image_file : str
+            path to image file
+        recognizer : HandwritingRecognizer
+        output_directory : str
     '''
 
-    recognizer = HandwritingRecognizer(args.config_file)
+    # read in the image data as bytes
+    print("processing", image_file, file=stderr)
 
-    with open(args.input_image, 'rb') as f:
+    with open(image_file, 'rb') as f:
         data = f.read()
 
-    output_image_plt, text, result_json = recognizer.process_image(data)
+    # process the image and make API call
+    output_image_plt, text, result_json = recognizer.process_image_data(data)
 
     # prepare output filenames
-    basename = path.splitext(path.basename(args.input_image))[0]
+    basename = path.splitext(path.basename(image_file))[0]
 
-    output_image_file = path.join(args.output_directory,
+    output_image_file = path.join(output_directory,
                                   basename + ".annotated.png")
-    output_json_file = path.join(args.output_directory, basename + ".json")
-    output_text_file = path.join(args.output_directory, basename + ".txt")
+    output_json_file = path.join(output_directory, basename + ".json")
+    output_text_file = path.join(output_directory, basename + ".ohr.txt")
 
     # let's make sure out output directory is there
-    if not path.isdir(args.output_directory):
-        mkdir(args.output_directory)
+    if not path.isdir(output_directory):
+        mkdir(output_directory)
 
     # and save the output
     output_image_plt.savefig(output_image_file, bbox_inches='tight')
@@ -261,6 +320,46 @@ def main():
         for line in text:
             print(line, file=f)
     print("output", output_text_file, file=stderr, flush=True)
+
+
+def main():
+    # set up argument parser
+    parser = argparse.ArgumentParser(
+        description="quick and dirty wrapper for Microsoft Azure Handwriting "
+                    "Recognition API")
+    parser.add_argument('config_file',
+                        help="config file containing API URL and "
+                             "path to file containing subscription key")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-i', '--input_image',
+                       help='path to input_image')
+    group.add_argument('-f', '--file_of_input_paths',
+                       help='file containing paths to input images, with '
+                             'each path on a new line')
+    parser.add_argument('output_directory', help="defaults to curdir",
+                        default=path.curdir, nargs="?")
+    args = parser.parse_args()
+
+    # set up recognizer with parameters from config file
+    recognizer = HandwritingRecognizer(args.config_file)
+
+    if args.input_image:
+        # process a single image
+        process_image_file(args.input_image,
+                           recognizer,
+                           args.output_directory)
+    else:
+        # we have a file of paths to work with; process a batch
+        with open(args.file_of_input_paths) as f:
+            for line in f.readlines():
+                line = line.strip()
+                if line:
+                    try:
+                        process_image_file(line,
+                                           recognizer,
+                                           args.output_directory)
+                    except FileNotFoundError as e:
+                        print(e, file=stderr)
 
 
 if __name__ == '__main__':
