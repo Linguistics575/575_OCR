@@ -239,6 +239,11 @@ def main():
                         help="Prints alignment when set",
                         action='store_true',
                         default=False)
+    parser.add_argument("--ignore_order", "-i",
+                        help='Will ignore order of tokens when set (by '
+                             'sorting the hypotheses and reference sequences)',
+                        action='store_true',
+                        default=False)
 
     args = parser.parse_args()
 
@@ -248,7 +253,10 @@ def main():
     with open(args.hypothesis_file) as f:
         h = f.read().split()
 
-    wer(r, h, args.print_alignment)
+    if args.ignore_order:
+        wer(sorted(r), sorted(h), args.print_alignment)
+    else:
+        wer(r, h, args.print_alignment)
 
 
 if __name__ == '__main__':
