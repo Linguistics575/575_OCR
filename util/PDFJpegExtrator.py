@@ -2,6 +2,7 @@ import PyPDF2 as pdf
 import os
 import argparse
 import sys
+import datetime
 
 from wand.image import Image
 
@@ -18,6 +19,7 @@ from wand.image import Image
 argparser = argparse.ArgumentParser(description='Convert PDF pages to JPG files')
 argparser.add_argument('filename', metavar='F', nargs='+', help='PDF File')
 argparser.add_argument('-r', type=int, default=250, help='Image resolution (at least 100, 250+ recommended)')
+argparser.add_argument('-p', type=int, default=0, help='Start page number (default is 0)')
 
 args = argparser.parse_args()
 
@@ -26,14 +28,19 @@ for fname in args.filename:
     pdfreader = pdf.PdfFileReader(pdfFile)
 
     endidx = fname.rfind('.pdf')
-    dirname = fname[0:endidx]
+    dirname = fname[0:endid]
 
     if not os.path.exists(dirname):
         os.makedirs(dirname)
 
+    logFile = open(dirname + '.log', 'w')
+
     sys.stdout.write('%s, %d pages\n' % (fname, pdfreader.numPages))
+    logFile.write('Reading file "%s", %d pages, resolution:%d,  %s\n' % (fname, pdfreader.numPages, args.r, datetime.datetime.now().strftime("%I:%M%p, %B %d, %Y")))
     for pg in range(pdfreader.numPages):
         with Image(filename='%s[%d]' % (fname, pg), resolution=args.r) as img:
-            img.save(filename='%s/page%d.jpg' % (dirname, pg))
-        sys.stdout.write('%d ' % (pg + 1))
+            img.save(filename='%s/page%d.jpg' % (dirname, (pg+args.p)))
+            logFile.write('page %d - w:%d, h:%d\n' % (pg+args.p, img.width, img.height))
+        sys.stdout.write('%d ' % (pg + args.p))
         sys.stdout.flush()
+    logFile.flush()

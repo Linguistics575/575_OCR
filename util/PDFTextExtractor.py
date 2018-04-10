@@ -13,6 +13,7 @@ def text_filename(filename, suffix):
 argparser = argparse.ArgumentParser(description='Extract existing text pages from a PDF file')
 argparser.add_argument('filename', metavar='F', nargs='+', help='PDF File')
 argparser.add_argument('-x', default='_text', help='Suffix to place on *.txt file (Defaults to "_text")')
+argparser.add_argument('-p', type=int, default=0, help='Start page number (default is 0)')
 
 args = argparser.parse_args()
 
@@ -25,6 +26,6 @@ for fname in args.filename:
     for pg in range(pdfreader.numPages):
         pageObj = pdfreader.getPage(pg)
 
-        outFile.write('\n===\npg. %d\n---\n%s\n' % (pg+1, pageObj.extractText()))
-        sys.stdout.write('%d ' % (pg+1))
+        outFile.write('\n===\npg. %d\n---\n%s\n' % (pg+args.p, pageObj.extractText()))
+        sys.stdout.write('%d ' % (pg+args.p))
         sys.stdout.flush()
