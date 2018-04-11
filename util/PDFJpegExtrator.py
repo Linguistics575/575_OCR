@@ -28,7 +28,7 @@ for fname in args.filename:
     pdfreader = pdf.PdfFileReader(pdfFile)
 
     endidx = fname.rfind('.pdf')
-    dirname = fname[0:endid]
+    dirname = fname[0:endidx]
 
     if not os.path.exists(dirname):
         os.makedirs(dirname)
