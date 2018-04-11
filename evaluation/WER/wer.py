@@ -1,262 +1,361 @@
 #!/usr/bin/env python3
 '''
-copy paste and modify of fantastic tool at https://github.com/zszyellow/WER-in-python
-Made python3, added print_alignment parameter to wer
-added argparser
-Jimmy 4/7/2018
+Module containing useful functions to get WER, edit distance, numbers of
+deletions, substitutions, insertions, and a printed alignment between reference
+and hypothesis texts.
 
-NOTE: WER = (S+D+I)/N, where:
-        S = numnber of substitutions
-        D = number of deletions
-        I = number of insertions
-        N = number of words in the reference (S + D + number correct)
+Can be run as a script on two files.
 
-TODO: For OCR, we should probably tokenize the inputs
-      (e.g. 'hair.' --> 'hair .')
-
-      Also, should clean up some more and create a pull request on original
-      repository for this guy.
+@author Jimmy Bruno
+@date 4/10/2018
 '''
-
 import argparse
-import numpy
+from collections import namedtuple
+from itertools import chain
+
+# DiffStats object returned by get_diff_stats
+DiffStats = namedtuple('DiffStats', ['edit_distance', 'num_deletions',
+                                     'num_insertions', 'num_substituions',
+                                     'num_ref_elements', 'alignment'])
 
 
-def editDistance(r, h):
+class AlignmentPrinter():
     '''
-    This funciton is to calculate the edit distance of refernce sentence and the hypothesis sentence.
-    Main algorithm used is dynamic programming.
-    Attributes: 
-        r -> the list of words produced by splitting reference sentence.
-        h -> the list of words produced by splitting hypothesis sentence.
-    '''
-    d = numpy.zeros((len(r)+1)*(len(h)+1), dtype=numpy.uint8).reshape((len(r)+1, len(h)+1))
-    for i in range(len(r)+1):
-        for j in range(len(h)+1):
-            if i == 0: 
-                d[0][j] = j
-            elif j == 0: 
-                d[i][0] = i
-    for i in range(1, len(r)+1):
-        for j in range(1, len(h)+1):
-            if r[i-1] == h[j-1]:
-                d[i][j] = d[i-1][j-1]
-            else:
-                substitute = d[i-1][j-1] + 1
-                insert = d[i][j-1] + 1
-                delete = d[i-1][j] + 1
-                d[i][j] = min(substitute, insert, delete)
-    return d
-
-
-def getStepList(r, h, d):
-    '''
-    This function is to get the list of steps in the process of dynamic programming.
-    Attributes: 
-        r -> the list of words produced by splitting reference sentence.
-        h -> the list of words produced by splitting hypothesis sentence.
-        d -> the matrix built when calulating the editting distance of h and r.
-    '''
-    x = len(r)
-    y = len(h)
-    list = []
-    while True:
-        if x == 0 and y == 0:
-            break
-        elif d[x][y] == d[x-1][y-1] and r[x-1] == h[y-1] and x >= 1 and y >= 1: 
-            list.append("e")
-            x = x - 1
-            y = y - 1
-        elif d[x][y] == d[x][y-1]+1 and y >= 1:
-            list.append("i")
-            x = x
-            y = y - 1
-        elif d[x][y] == d[x-1][y-1]+1 and x >= 1 and y >= 1:
-            list.append("s")
-            x = x - 1
-            y = y - 1
-        else:
-            list.append("d")
-            x = x - 1
-            y = y
-    return list[::-1]
-
-def alignedPrint(list, r, h, result):
-    '''
-    This funcition is to print the result of comparing reference and hypothesis sentences in an aligned way.
-    
-    Attributes:
-        list   -> the list of steps.
-        r      -> the list of words produced by splitting reference sentence.
-        h      -> the list of words produced by splitting hypothesis sentence.
-        result -> the rate calculated based on edit distance.
-    '''
-    print("REF:", end=' ')
-    for i in range(len(list)):
-        if list[i] == "i":
-            count = 0
-            for j in range(i):
-                if list[j] == "d":
-                    count += 1
-            index = i - count
-            print(" "*(len(h[index])), end=' ')
-        elif list[i] == "s":
-            count1 = 0
-            for j in range(i):
-                if list[j] == "i":
-                    count1 += 1
-            index1 = i - count1
-            count2 = 0
-            for j in range(i):
-                if list[j] == "d":
-                    count2 += 1
-            index2 = i - count2
-            if len(r[index1]) < len(h[index2]):
-                print(r[index1] + " " * (len(h[index2])-len(r[index1])), end=' ')
-            else:
-                print(r[index1], end=' ')
-        else:
-            count = 0
-            for j in range(i):
-                if list[j] == "i":
-                    count += 1
-            index = i - count
-            print(r[index], end=' ')
-    print()
-    print("HYP:", end=' ')
-    for i in range(len(list)):
-        if list[i] == "d":
-            count = 0
-            for j in range(i):
-                if list[j] == "i":
-                    count += 1
-            index = i - count
-            print(" " * (len(r[index])), end=' ')
-        elif list[i] == "s":
-            count1 = 0
-            for j in range(i):
-                if list[j] == "i":
-                    count1 += 1
-            index1 = i - count1
-            count2 = 0
-            for j in range(i):
-                if list[j] == "d":
-                    count2 += 1
-            index2 = i - count2
-            if len(r[index1]) > len(h[index2]):
-                print(h[index2] + " " * (len(r[index1])-len(h[index2])), end=' ')
-            else:
-                print(h[index2], end=' ')
-        else:
-            count = 0
-            for j in range(i):
-                if list[j] == "d":
-                    count += 1
-            index = i - count
-            print(h[index], end=' ')
-    print()
-    print("EVA:", end=' ')
-    for i in range(len(list)):
-        if list[i] == "d":
-            count = 0
-            for j in range(i):
-                if list[j] == "i":
-                    count += 1
-            index = i - count
-            print("D" + " " * (len(r[index])-1), end=' ')
-        elif list[i] == "i":
-            count = 0
-            for j in range(i):
-                if list[j] == "d":
-                    count += 1
-            index = i - count
-            print("I" + " " * (len(h[index])-1), end=' ')
-        elif list[i] == "s":
-            count1 = 0
-            for j in range(i):
-                if list[j] == "i":
-                    count1 += 1
-            index1 = i - count1
-            count2 = 0
-            for j in range(i):
-                if list[j] == "d":
-                    count2 += 1
-            index2 = i - count2
-            if len(r[index1]) > len(h[index2]):
-                print("S" + " " * (len(r[index1])-1), end=' ')
-            else:
-                print("S" + " " * (len(h[index2])-1), end=' ')
-        else:
-            count = 0
-            for j in range(i):
-                if list[j] == "i":
-                    count += 1
-            index = i - count
-            print(" " * (len(r[index])), end=' ')
-    print()
-    print("WER: " + result)
-
-
-def wer(r, h, print_alignment=False):
-    """
-    This is a function that calculate the word error rate in ASR.
-    You can use it like this: wer("what is it".split(), "what is".split()) 
+    Pretty prints alignment between reference and hypothesis, with annotations
+    for Substitutions, Deletions, and Insertions.
 
     Parameters:
     -----------
-        r : sequence
-            reference
-        h : sequence
-            hypothesis
-        print_alignment : boolean (default False)
-            prints alignment if true
+        ref_elements : list
+            list of elements from reference iterable
+        hypothesis_elements : list
+            list of elments from hypothesis iterable
+        label_str : list
+            list of strings indicating D(eletion), I(insertion),
+            S(ubstitution), or " " if there's a match.
+    '''
 
-    """
-    # build the matrix
-    d = editDistance(r, h)
+    def __init__(self, ref_elements, hypothesis_elements, label_str):
+        self.ref_elements = ref_elements
+        self.hypothesis_elements = hypothesis_elements
+        self.label_str = label_str
+        assert (len(self.ref_elements) ==
+                len(self.hypothesis_elements) ==
+                len(self.label_str))
 
-    # print the result in aligned way
-    result = float(d[len(r)][len(h)]) / len(r) * 100
-    result = str("%.2f" % result) + "%"
+    def __str__(self):
+        if len(self.ref_elements) > 8:
+            self.print(orient='vertical')
+        else:
+            self.print(orient='horizontal')
+        return ""
 
-    if print_alignment:
+    def print(self, orient='horizontal'):
 
-        # find out the manipulation steps
-        step_list = getStepList(r, h, d)
-        alignedPrint(step_list, r, h, result)
+        '''
+        pretty prints an alignment to stdout
+
+        Parameters:
+        -----------
+            orient : str ('horizontal' or 'vertical', defaults to 'horizontal')
+                orientation of printout.  For long documents, 'vertical' will
+                be more readable since this is not smart enough to insert
+                appropriate line breaks in horizonal mode.
+        '''
+        assert orient == 'horizontal' or orient == 'vertical'
+
+        if orient == 'horizontal':
+            # we'll need to pad things to elements line up nicely horizontally
+
+            # list of the maxiumum lengths of  (reference, hypothesis, label)
+            max_lengths = [max(map(len, e)) for e
+                           in zip(self.ref_elements,
+                                  self.hypothesis_elements,
+                                  self.label_str)]
+
+            # list of reference elements with padding appropriate for printing
+            padded_ref_elements = list(map(str.ljust,
+                                           self.ref_elements,
+                                           max_lengths))
+
+            # list of hypothesis elements with padding appropriate for printing
+            padded_hyp_elements = list(map(str.ljust,
+                                           self.hypothesis_elements,
+                                           max_lengths))
+
+            # list of label elements with padding appropriate for printing
+            padded_label_elements = list(map(str.ljust,
+                                             self.label_str,
+                                             max_lengths))
+
+            print(" ".join(padded_ref_elements))
+            print(" ".join(padded_hyp_elements))
+            print(" ".join(padded_label_elements))
+
+        else:
+            # we'll need to pad things to create nice columns, which means that
+            # we just have to add padding to the right side of the references
+
+            # maximum length of any element
+            max_length = max(map(len,
+                                 list(chain(self.ref_elements,
+                                            self.hypothesis_elements))))
+            # do the padding
+            padded_ref_elements = list(map(lambda x: str.ljust(x, max_length),
+                                           self.ref_elements))
+            for x in zip(self.label_str,
+                         padded_ref_elements,
+                         self.hypothesis_elements):
+
+                print(" ".join(x))
+
+
+def get_distance_matrix(ref, hypothesis):
+
+    '''
+    return an edit distance matrix
+
+    Parameters:
+    -----------
+        ref : iterable
+            the "reference" iterable, e.g. elements present in ref but absent
+            in hypothesis will be deletions.
+
+        hypothesis : iterable
+            the "hypothesis iterable", e.g. elements present in hypothesis but
+            absent in ref will be insertions
+
+    Returns:
+    --------
+        distance_matrix : 2d list of lists
+    '''
+    # initialize the matrix
+    ref_len = len(ref) + 1
+    hyp_len = len(hypothesis) + 1
+    distance_matrix = [[0] * hyp_len for _ in range(ref_len)]
+    for i in range(ref_len):
+        distance_matrix[i][0] = i
+    for j in range(hyp_len):
+        distance_matrix[0][j] = j
+
+    # calculate the edit distances
+    for i in range(1, ref_len):
+        for j in range(1, hyp_len):
+
+            deletion = distance_matrix[i-1][j] + 1
+            insertion = distance_matrix[i][j-1] + 1
+            substitution = distance_matrix[i-1][j-1]
+
+            if ref[i-1] != hypothesis[j-1]:
+                substitution += 1
+
+            distance_matrix[i][j] = min(insertion, deletion, substitution)
+
+    return distance_matrix
+
+
+def get_simple_wer(ref, hypothesis):
+    '''
+    simple helper function to quickly return the WER if that's all we're
+    interested in
+
+    Parameters:
+    -----------
+        ref : iterable
+            the "reference" iterable, e.g. elements present in ref but absent
+            in hypothesis will be deletions.
+        hypothesis : iterable
+            the "hypothesis iterable", e.g. elements present in hypothesis but
+            absent in ref will be insertions
+
+    Returns:
+    --------
+        wer : float
+            Word-Error-Rate
+    '''
+    distance_matrix = get_distance_matrix(ref, hypothesis)
+
+    i = len(distance_matrix) - 1
+    j = len(distance_matrix[i]) - 1
+
+    edit_distance = distance_matrix[i][j]
+
+    # the reference is along the i dimension (rows) so the WER is:
+    return float(edit_distance)/i
+
+
+def get_diff_stats(ref, hypothesis, return_alignment=False):
+
+    '''
+    Return diff stats between reference and hypothesis, and optionally an
+    AlignmentPrinter object.
+
+    Parameters:
+    -----------
+        ref : iterable
+            the "reference" iterable, e.g. elements present in ref but absent
+            in hypothesis will be deletions.
+        hypothesis : iterable
+            the "hypothesis iterable", e.g. elements present in hypothesis but
+            absent in ref will be insertions
+        return_alignment : boolean (default : false)
+            will return an AlignmentPrinter object
+
+    Returns:
+    --------
+        a named tuple of
+            edit_distance : int
+                the edit distance between ref and hypothesis (where deletions,
+                insertions, and substitutions all have an equal penalty of 1)
+            num_deletions : int
+                the number of deletions
+            num_insertions : int
+                the number of insertions
+            num_substitutions : int
+                the number of substituions
+            num_ref_elements : int
+                the total number of elements in ref
+            alignment : AlignmentPrinter (only if return_alignment == True)
+    '''
+    distance_matrix = get_distance_matrix(ref, hypothesis)
+
+    num_ref_elements = len(ref)
+    i = num_ref_elements
+    j = len(hypothesis)
+
+    edit_distance = distance_matrix[i][j]
+
+    num_deletions = 0
+    num_insertions = 0
+    num_substituions = 0
+
+    # we'll need these if we want the alignment
+    ref_elements = []
+    hypothesis_elements = []
+    label_str = []
+
+    # start at the cell containing the edit distance and analyze the matrix to
+    # figure out what is a deletion, insertion, or substitution.
+    while i or j:
+        # if deletion
+        if distance_matrix[i][j] == distance_matrix[i-1][j] + 1:
+            num_deletions += 1
+
+            if return_alignment:
+                ref_elements.append(ref[i-1])
+                hypothesis_elements.append(" ")
+                label_str.append('D')
+
+            i -= 1
+
+        # if insertion
+        elif distance_matrix[i][j] == distance_matrix[i][j-1] + 1:
+            num_insertions += 1
+
+            if return_alignment:
+                ref_elements.append(" ")
+                hypothesis_elements.append(hypothesis[j-1])
+                label_str.append('I')
+
+            j -= 1
+
+        # if match or substitution
+        else:
+            ref_element = ref[i-1]
+            hypothesis_element = hypothesis[j-1]
+
+            if ref_element != hypothesis_element:
+                num_substituions += 1
+                label = 'S'
+            else:
+                label = ' '
+
+            if return_alignment:
+                ref_elements.append(ref_element)
+                hypothesis_elements.append(hypothesis_element)
+                label_str.append(label)
+
+            i -= 1
+            j -= 1
+
+    if return_alignment:
+
+        ref_elements.reverse()
+        hypothesis_elements.reverse()
+        label_str.reverse()
+
+        alignment = AlignmentPrinter(ref_elements,
+                                     hypothesis_elements,
+                                     label_str)
+
+        return DiffStats(edit_distance, num_deletions, num_insertions,
+                         num_substituions, num_ref_elements, alignment)
     else:
-        print("WER: ", result)
+        return DiffStats(edit_distance, num_deletions, num_insertions,
+                         num_substituions, num_ref_elements, None)
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Calculates WER for 2 files, ignoring whitespace.")
+        description="Calculates Word-Error-Rate (WER) for 2 files, ignoring "
+                    "whitespace.  Note that WER is defined as (#insertions + "
+                    "#deletions + #substitutions)/(#tokens in reference)")
     parser.add_argument("reference_file",
                         help='File to use as Reference')
     parser.add_argument("hypothesis_file",
                         help='File to use as hypothesis')
-    parser.add_argument("--print_alignment", "-p",
-                        help="Prints alignment when set",
+    parser.add_argument("--verbose", "-v",
+                        help="In addition to WER, prints edit distance, "
+                             "and number of deletions, insertions, and "
+                             "substitutions.",
                         action='store_true',
                         default=False)
+    parser.add_argument("--print_alignment", "-a",
+                        required=False, choices=['horizontal', 'vertical'],
+                        help="Print the aligned text horizonally or "
+                             "vertically.  vertical will be more readable "
+                             "for longer texts, but horizontal will be more "
+                             "concise.")
     parser.add_argument("--ignore_order", "-i",
                         help='Will ignore order of tokens when set (by '
-                             'sorting the hypotheses and reference sequences)',
+                             'sorting the hypothesis and reference sequences)',
                         action='store_true',
                         default=False)
 
     args = parser.parse_args()
 
     with open(args.reference_file) as f:
-        r = f.read().split()
+        reference = f.read().split()
 
     with open(args.hypothesis_file) as f:
-        h = f.read().split()
+        hypothesis = f.read().split()
 
     if args.ignore_order:
-        wer(sorted(r), sorted(h), args.print_alignment)
+        # we ignore the impact of the order by sorting the elements
+        reference.sort()
+        hypothesis.sort()
+
+    if args.verbose:
+        return_alignment = True if args.print_alignment else False
+
+        diff_stats = get_diff_stats(reference, hypothesis, return_alignment)
+
+        (edit_distance,
+         num_deletions,
+         num_insertions,
+         num_substituions,
+         num_ref_elements,
+         alignment) = diff_stats
+
+        wer = float(edit_distance)/num_ref_elements
+
+        print("WER    EditDist #Substit #Delete #Insert #RefToks")
+        print("---    -------- -------- ------- ------- --------")
+        print("{:.4f} {: >8d} {: >8d} {: >7d} {: >7d} {: >8}".format(
+                        wer, edit_distance, num_substituions, num_deletions,
+                        num_insertions, num_ref_elements))
     else:
-        wer(r, h, args.print_alignment)
+        print("WER: ", get_simple_wer(reference, hypothesis))
 
 
 if __name__ == '__main__':
