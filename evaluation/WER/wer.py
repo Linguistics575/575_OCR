@@ -6,6 +6,23 @@ and hypothesis texts.
 
 Can be run as a script on two files.
 
+Verbose output looks like this:
+    WER    EditDist #Substit #Delete #Insert #RefToks
+    ---    -------- -------- ------- ------- --------
+    0.7333       88       45      35       8      120
+
+Horizontally printed alignment looks like this:
+     Fuzzy Wuzzy was a     bear
+John Fuzzy Wuzzy had hair.
+I                S   S     D
+
+Vertically printed alignment looks like this:
+I       John
+  Fuzzy Fuzzy
+  Wuzzy Wuzzy
+S was   had
+S a     hair.
+D bear
 @author Jimmy Bruno
 @date 4/10/2018
 '''
@@ -356,6 +373,9 @@ def main():
                         num_insertions, num_ref_elements))
     else:
         print("WER: ", get_simple_wer(reference, hypothesis))
+
+    if args.print_alignment:
+        alignment.print(orient=args.print_alignment)
 
 
 if __name__ == '__main__':
