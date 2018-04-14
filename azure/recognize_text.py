@@ -73,22 +73,48 @@ def get_output_image(result_json, data):
     return plt
 
 
-class HandwritingRecognizer():
+def wait(seconds):
     '''
-    HandwritingRecognizer class
+    waits and prints a friendly message to stderr
+
+    Parameters:
+    -----------
+        seconds : int
+            number of seconds to wait
+    '''
+    print("waiting {} seconds".format(seconds),
+          end='', file=stderr, flush=True)
+    for i in range(seconds):
+        time.sleep(1)
+        print(".", end='', file=stderr, flush=True)
+    print("", file=stderr, flush=True)
+
+
+class Recognizer():
+    '''
+    Recognizer class
 
     Parameters:
     -----------
         config_file : str
             path to config file containing url and subscription key for API
+        handwriting_param : str
+            parameter that takes str values of 'true' or 'false' to be passed
+            to API indicating whether to do handwriting recognition ('true')
+            or OCR ('false')
     '''
-    def __init__(self, config_file):
+    def __init__(self, config_file, handwriting_param):
+
+        assert (handwriting_param == 'true' or handwriting_param == 'false')
+
         self.config_file = config_file
-        self._request_params = {'handwriting': 'true'}
+        self.handwriting_param = handwriting_param
+        self._request_params = {'handwriting': handwriting_param}
         self.parse_config_file()
 
     def __repr__(self):
-        return "HandwritingRecognizer(config_file={}".format(self.config_file)
+        return "Recognizer(config_file='{}', handwriting_param='{}')".format(
+                    self.config_file, self.handwriting_param)
 
     def parse_config_file(self):
         '''
@@ -113,75 +139,21 @@ class HandwritingRecognizer():
         # does it matter if 'Content-Type' is there?
         self._retrieval_headers = {'Ocp-Apim-Subscription-Key': self._key}
 
-    def submit_request(self, data):
-        """
-        Helper function to process the request to API
-        copy-and-paste-and modify from the notebook
-
-        Parameters:
-        -----------
-            data : bytes
-                bytes representing image read from disk.
-
-        Returns:
-        --------
-            operation_location : str
-                operation location (url) from which OCR result can be retrieved
-        """
-        print('submitting request to API.', file=stderr, flush=True)
-
-        retries = 0
-        operation_location = None
-
-        while True:
-            response = requests.request('post', self._url, data=data,
-                                        headers=self._headers,
-                                        params=self._request_params)
-
-            if response.status_code == 429:
-                print(response.json(), file=stderr, flush=True)
-                try:
-                    '''
-                    It looks like sometimes this is a message saying that the
-                    "rate limit has been exceeded."" So we find out how long it
-                    wants us to wait, and we wait.
-                    '''
-                    message = response.json()['message']
-                    waittime = re.search(r'Try again in (\d+) seconds',
-                                         message).group(1)
-                    print("waiting {} seconds".format(waittime), file=stderr)
-                    time.sleep(int(waittime))
-                except (AttributeError, KeyError):
-                    pass
-
-                if retries <= self._max_num_retries:
-                    time.sleep(1)
-                    retries += 1
-                    continue
-                else:
-                    print('Error: failed after retrying {} times!'.format(
-                                                        self._max_num_retries),
-                          file=stderr, flush=True)
-                    break
-            elif response.status_code == 202:
-                operation_location = response.headers['Operation-Location']
-            else:
-                print("Error code: %d" % (response.status_code),
-                      file=stderr, flush=True)
-                print("Message: %s" % (response.json()),
-                      file=stderr, flush=True)
-            break
-        return operation_location
-
-    def get_text_result(self, operation_location):
+    def get_hwr_text_result(self, operation_location):
         """
         Helper function to get text result from operation location after API
-        call.  Mostly a copy-and-paste from notebook
+        call for Handwriting Recognition.  (This is not necessary in the case
+        of OCR.)
 
         Parameters:
         ------------
             operation_location: operationLocation to get text result
+
+        Returns:
+        --------
+            result : json
         """
+        print('retrieving HWR results from server', file=stderr, flush=True)
         retries = 0
         result = None
 
@@ -193,14 +165,13 @@ class HandwritingRecognizer():
                 try:
                     '''
                     It looks like sometimes this is a message saying that the
-                    "rate limit has been exceeded."" So we find out how long it
+                    "rate limit has been exceeded." So we find out how long it
                     wants us to wait, and we wait.
                     '''
                     message = response.json()['message']
                     waittime = re.search(r'Try again in (\d+) seconds',
                                          message).group(1)
-                    print("waiting {} seconds".format(waittime), file=stderr)
-                    time.sleep(int(waittime))
+                    wait(int(waittime))
                 except (AttributeError, KeyError):
                     pass
 
@@ -209,28 +180,144 @@ class HandwritingRecognizer():
                     retries += 1
                     continue
                 else:
-                    print('Error: failed after retrying {} times!'.format(
-                                                        self._max_num_retries),
+                    print('Error: failed retrieval after retrying '
+                          '{} times!'.format(self._max_num_retries),
                           file=stderr, flush=True)
                     break
             elif response.status_code == 200:
                 result = response.json()
+                status = result['status']
+                if status == 'Succeeded' or status == 'Failed':
+                    break
+                else:
+                    # it could have a status of 'Running', so we wait a sec
+                    time.sleep(1)
             else:
                 print("Error code: %d" % (response.status_code),
                       file=stderr, flush=True)
                 print("Message: %s" % (response.json()),
                       file=stderr, flush=True)
-            break
+                break
 
         return result
 
-    def extract_text_from_json(self, result):
+    def extract_hwr_text_from_json(self, result):
         '''
-        return a list of lines from the result json
+        return a list of lines from the result json with we're doing
+        handwriting.
         '''
         return [line['text']
                 for line
                 in result['recognitionResult']['lines']]
+
+    def extract_ocr_text_from_json(self, result):
+        '''
+        return a list of lines from the result json when we're doing ocr
+        '''
+        output_lines = []
+
+        for region in result['regions']:
+            for line in region['lines']:
+                words = [word['text'] for word in line['words']]
+
+                output_lines.append(" ".join(words))
+
+        return output_lines
+
+    def process_response(self, response):
+        '''
+        process the response from the API call as appropriate for either OCR
+        or handwriting recognition.
+
+        In the case of OCR, response.json contains the recognition result
+        directly.  In the case of handwriting recognition, the response has an
+        'OperationLocation' header which will indicate a URL for our
+        recognition result, and this will have to be retreived in a separate
+        request
+
+        Parameter:
+        ---------
+            response : requests.models.Response
+                response from API call
+
+        Returns:
+            result : dict
+                json result of API call
+        '''
+
+        if self.handwriting_param == 'false':
+            result = response.json()
+        else:
+            operation_location = response.headers['Operation-Location']
+            result = self.get_hwr_text_result(operation_location)
+
+        return result
+
+    def submit_request(self, data):
+        """
+        Helper function to process the request to API
+
+        Parameters:
+        -----------
+            data : bytes
+                bytes representing image read from disk.
+
+        Returns:
+        --------
+            response : requests.models.Response
+                response.json() will will have an 'Operation-Location' header
+                in the case of handwriting recognition, which will have to be
+                retrived; in the case of OCR, it will have the recognition
+                result directly.
+        """
+        print('submitting request to API.', file=stderr, flush=True)
+
+        retries = 0
+        result = None
+
+        while True:
+            response = requests.request('post', self._url, data=data,
+                                        headers=self._headers,
+                                        params=self._request_params)
+
+            if response.status_code == 429:
+                print(response.json(), file=stderr, flush=True)
+                try:
+                    '''
+                    It looks like sometimes this is a message saying that the
+                    "rate limit has been exceeded." So we find out how long it
+                    wants us to wait, and we wait.
+                    '''
+                    message = response.json()['message']
+                    waittime = re.search(r'Try again in (\d+) seconds',
+                                         message).group(1)
+                    wait(int(waittime))
+                except (AttributeError, KeyError):
+                    pass
+
+                if retries <= self._max_num_retries:
+                    time.sleep(1)
+                    retries += 1
+                    continue
+                else:
+                    print('Error: failed request after retrying '
+                          '{} times!'.format(self._max_num_retries),
+                          file=stderr, flush=True)
+                    break
+
+            elif response.status_code == 200 or response.status_code == 202:
+                # it looks like success is indicated by status_code 200 in the
+                # case of OCR, but 202 in the case of handwriting recognition
+                result = self.process_response(response)
+                break
+            else:
+                print("Error code: %d" % (response.status_code),
+                      file=stderr, flush=True)
+                print("Message: %s" % (response.json()),
+                      file=stderr, flush=True)
+                break
+
+        return result
 
     def process_image_data(self, data):
         '''
@@ -251,29 +338,26 @@ class HandwritingRecognizer():
             result : dict
                 json representing the API response.
         '''
-        result = None
-        operation_location = self.submit_request(data)
+        result = self.submit_request(data)
 
-        if operation_location is not None:
-
-            print('retrieving results from server', file=stderr, flush=True)
-
-            while True:
-                result = self.get_text_result(operation_location)
-
-                if (result['status'] == 'Succeeded'
-                        or result['status'] == 'Failed'):
-                    break
-
-                time.sleep(1)
+        if result:
 
             # get a list of output lines (This is the output OCR text!)
-            output_lines = self.extract_text_from_json(result)
+            # the structure of the result json is very different depending on
+            # if we're doing ocr or hwr.  We have two separate parsing
+            # functions:
 
-            output_image = get_output_image(result, data)
-
-            return (output_image, output_lines, result)
+            if self.handwriting_param == 'true':
+                output_lines = self.extract_hwr_text_from_json(result)
+                output_image = get_output_image(result, data)
+                return (output_image, output_lines, result)
+            else:
+                output_lines = self.extract_ocr_text_from_json(result)
+                # we do not construct an output image for OCR.
+                # It's too messy anyway, and the json is different
+                return (None, output_lines, result)
         else:
+
             return (None, None, None)
 
 
@@ -285,7 +369,7 @@ def process_image_file(image_file, recognizer, output_directory):
     -----------
         image_file : str
             path to image file
-        recognizer : HandwritingRecognizer
+        recognizer : Recognizer
         output_directory : str
     '''
 
@@ -312,14 +396,18 @@ def process_image_file(image_file, recognizer, output_directory):
         if not path.isdir(output_directory):
             mkdir(output_directory)
 
-        # and save the output
-        output_image_plt.savefig(output_image_file, bbox_inches='tight')
-        print("output", output_image_file, file=stderr, flush=True)
+        # and save the output:
+        if output_image_plt:
+            # (it's only here if we're doing hwr and not ocr)
+            output_image_plt.savefig(output_image_file, bbox_inches='tight')
+            print("output", output_image_file, file=stderr, flush=True)
 
+        # the json could be handy for debugging, so we hang onto it
         with open(output_json_file, "w") as f:
             json.dump(result_json, f)
         print("output", output_json_file, file=stderr, flush=True)
 
+        # and finally the text output
         with open(output_text_file, "w") as f:
             for line in text:
                 print(line, file=f)
@@ -333,23 +421,28 @@ def process_image_file(image_file, recognizer, output_directory):
 def main():
     # set up argument parser
     parser = argparse.ArgumentParser(
-        description="quick and dirty wrapper for Microsoft Azure Handwriting "
-                    "Recognition API")
+        description="Submit images to Microsoft Azure Text Recognition API")
     parser.add_argument('config_file',
                         help="config file containing API URL and "
                              "path to file containing subscription key")
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-i', '--input_image',
-                       help='path to input_image')
-    group.add_argument('-f', '--file_of_input_paths',
-                       help='file containing paths to input images, with '
-                             'each path on a new line')
-    parser.add_argument('output_directory', help="defaults to curdir",
+    input_group = parser.add_mutually_exclusive_group(required=True)
+    input_group.add_argument('-i', '--input_image',
+                             help='path to input_image')
+    input_group.add_argument('-f', '--file_of_input_paths',
+                             help='file containing paths to input images, '
+                             'with each path on a new line')
+    parser.add_argument('-o', '--output_directory', help="defaults to curdir",
                         default=path.curdir, nargs="?")
+    parser.add_argument('-r', '--ocr', action='store_true', default=False,
+                        help='Do OCR on typewritten text instead of '
+                             'recognizing handwritten text. (Default is to '
+                             'recognize handwritten text')
     args = parser.parse_args()
 
-    # set up recognizer with parameters from config file
-    recognizer = HandwritingRecognizer(args.config_file)
+    # set up recognizer for either OCR or handwritting recognition with
+    # parameters from config file
+    handwriting_param = 'false' if args.ocr else 'true'
+    recognizer = Recognizer(args.config_file, handwriting_param)
 
     if args.input_image:
         # process a single image
