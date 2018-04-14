@@ -267,12 +267,14 @@ class HandwritingRecognizer():
 
                 time.sleep(1)
 
-        # get a list of output lines (This is the output OCR text!)
-        output_lines = self.extract_text_from_json(result)
+            # get a list of output lines (This is the output OCR text!)
+            output_lines = self.extract_text_from_json(result)
 
-        output_image = get_output_image(result, data)
+            output_image = get_output_image(result, data)
 
-        return (output_image, output_lines, result)
+            return (output_image, output_lines, result)
+        else:
+            return (None, None, None)
 
 
 def process_image_file(image_file, recognizer, output_directory):
@@ -296,30 +298,36 @@ def process_image_file(image_file, recognizer, output_directory):
     # process the image and make API call
     output_image_plt, text, result_json = recognizer.process_image_data(data)
 
-    # prepare output filenames
-    basename = path.splitext(path.basename(image_file))[0]
+    if text is not None:
+        # prepare output filenames
+        basename = path.splitext(path.basename(image_file))[0]
 
-    output_image_file = path.join(output_directory,
-                                  basename + ".annotated.png")
-    output_json_file = path.join(output_directory, basename + ".json")
-    output_text_file = path.join(output_directory, basename + ".ohr.txt")
+        output_image_file = path.join(output_directory,
+                                      basename + ".annotated.png")
+        output_json_file = path.join(output_directory, basename + ".json")
+        output_text_file = path.join(output_directory,
+                                     basename + ".recognized.txt")
 
-    # let's make sure out output directory is there
-    if not path.isdir(output_directory):
-        mkdir(output_directory)
+        # let's make sure out output directory is there
+        if not path.isdir(output_directory):
+            mkdir(output_directory)
 
-    # and save the output
-    output_image_plt.savefig(output_image_file, bbox_inches='tight')
-    print("output", output_image_file, file=stderr, flush=True)
+        # and save the output
+        output_image_plt.savefig(output_image_file, bbox_inches='tight')
+        print("output", output_image_file, file=stderr, flush=True)
 
-    with open(output_json_file, "w") as f:
-        json.dump(result_json, f)
-    print("output", output_json_file, file=stderr, flush=True)
+        with open(output_json_file, "w") as f:
+            json.dump(result_json, f)
+        print("output", output_json_file, file=stderr, flush=True)
 
-    with open(output_text_file, "w") as f:
-        for line in text:
-            print(line, file=f)
-    print("output", output_text_file, file=stderr, flush=True)
+        with open(output_text_file, "w") as f:
+            for line in text:
+                print(line, file=f)
+        print("output", output_text_file, file=stderr, flush=True)
+    else:
+        # there was some issue with the API call.  An error would have printed
+        # to stderr by now.
+        print("No output retreived for ", image_file, file=stderr, flush=True)
 
 
 def main():
