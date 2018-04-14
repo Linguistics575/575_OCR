@@ -1,6 +1,6 @@
 ## Wrapper to do Handwriting Recognition (and also regular OCR) calling the Microsoft Azure Cognitive Services API.
 This script will read in a locally stored image, present it to the Microsoft Azure Computer Vision API to do handwriting recognition on it, and retrieve and return the result.  It can also be used to do optical character recognition on typewritten text.
-* Images must be less then 4MB and smaller than 3200 pixes x 32000 pixels, in JPEG, PNG, GIF, or BMP formats.
+* Images must be less then 4MB and smaller than 3200 pixes x 3200 pixels, in JPEG, PNG, GIF, or BMP formats.
 * For handwriting recognition, you'll get 3 output files:
   * A `.recognized.txt` file that has the recognized text
   * An `.annotated.png` file that will consist of the input image with the recognized text superimposed upon it
@@ -24,7 +24,7 @@ The form of the command will be:
 * `config_file` is the config file containing the API URL and the path to the file containing your subscription key.
 * To run recognition on a single image, the next would be `-i INPUT_IMAGE`, or, to run a batch of images, it would be `-f FILE_OF_INPUT_PATHS`.
 * If you'd like the output to go anywhere other than the current directory you can pass `-o OUTPUT_DIRECTORY`, or just leave it out for the current directory.
-* If you'd like to run optical character recognition for typewritten text as opposed to handwriting 
+* If you'd like to run optical character recognition for typewritten text as opposed to handwriting, pass `--ocr`. 
 
 #### Examples:
 * for Handwriting recognition for a single file:
