@@ -23,108 +23,14 @@ I       John
 S was   had
 S a     hair.
 D bear
-@author Jimmy Bruno
-@date 4/10/2018
 '''
 import argparse
-from collections import namedtuple
+from collections import OrderedDict
 from itertools import chain
 
-# DiffStats object returned by get_diff_stats
-DiffStats = namedtuple('DiffStats', ['edit_distance', 'num_deletions',
-                                     'num_insertions', 'num_substituions',
-                                     'num_ref_elements', 'alignment'])
-
-
-class AlignmentPrinter():
-    '''
-    Pretty prints alignment between reference and hypothesis, with annotations
-    for Substitutions, Deletions, and Insertions.
-
-    Parameters:
-    -----------
-        ref_elements : list
-            list of elements from reference iterable
-        hypothesis_elements : list
-            list of elments from hypothesis iterable
-        label_str : list
-            list of strings indicating D(eletion), I(insertion),
-            S(ubstitution), or " " if there's a match.
-    '''
-
-    def __init__(self, ref_elements, hypothesis_elements, label_str):
-        self.ref_elements = ref_elements
-        self.hypothesis_elements = hypothesis_elements
-        self.label_str = label_str
-        assert (len(self.ref_elements) ==
-                len(self.hypothesis_elements) ==
-                len(self.label_str))
-
-    def __str__(self):
-        if len(self.ref_elements) > 8:
-            self.print(orient='vertical')
-        else:
-            self.print(orient='horizontal')
-        return ""
-
-    def print(self, orient='horizontal'):
-
-        '''
-        pretty prints an alignment to stdout
-
-        Parameters:
-        -----------
-            orient : str ('horizontal' or 'vertical', defaults to 'horizontal')
-                orientation of printout.  For long documents, 'vertical' will
-                be more readable since this is not smart enough to insert
-                appropriate line breaks in horizonal mode.
-        '''
-        assert orient == 'horizontal' or orient == 'vertical'
-
-        if orient == 'horizontal':
-            # we'll need to pad things to elements line up nicely horizontally
-
-            # list of the maxiumum lengths of  (reference, hypothesis, label)
-            max_lengths = [max(map(len, e)) for e
-                           in zip(self.ref_elements,
-                                  self.hypothesis_elements,
-                                  self.label_str)]
-
-            # list of reference elements with padding appropriate for printing
-            padded_ref_elements = list(map(str.ljust,
-                                           self.ref_elements,
-                                           max_lengths))
-
-            # list of hypothesis elements with padding appropriate for printing
-            padded_hyp_elements = list(map(str.ljust,
-                                           self.hypothesis_elements,
-                                           max_lengths))
-
-            # list of label elements with padding appropriate for printing
-            padded_label_elements = list(map(str.ljust,
-                                             self.label_str,
-                                             max_lengths))
-
-            print(" ".join(padded_ref_elements))
-            print(" ".join(padded_hyp_elements))
-            print(" ".join(padded_label_elements))
-
-        else:
-            # we'll need to pad things to create nice columns, which means that
-            # we just have to add padding to the right side of the references
-
-            # maximum length of any element
-            max_length = max(map(len,
-                                 list(chain(self.ref_elements,
-                                            self.hypothesis_elements))))
-            # do the padding
-            padded_ref_elements = list(map(lambda x: str.ljust(x, max_length),
-                                           self.ref_elements))
-            for x in zip(self.label_str,
-                         padded_ref_elements,
-                         self.hypothesis_elements):
-
-                print(" ".join(x))
+# used in StatsTuple:
+from builtins import property as _property, tuple as _tuple
+from operator import itemgetter as _itemgetter
 
 
 def get_distance_matrix(ref, hypothesis):
@@ -171,145 +77,308 @@ def get_distance_matrix(ref, hypothesis):
     return distance_matrix
 
 
-def get_simple_wer(ref, hypothesis):
+class StatsTuple(tuple):
     '''
-    simple helper function to quickly return the WER if that's all we're
-    interested in
+    tuple subclass used to track edit_distance and related values.
+
+    Copy-and-paste-and-modify of NamedTuple _source with
+    addition operator overridden
+
+    Attributes:
+    ----------
+        edit_distance : int
+        num_deletions : int
+        num_insertions :int
+        num_substituions : int
+        num_ref_elements :int
+    '''
+
+    __slots__ = ()
+
+    _fields = ('edit_distance', 'num_deletions', 'num_insertions',
+               'num_substituions', 'num_ref_elements')
+
+    def __new__(_cls, edit_distance, num_deletions, num_insertions,
+                num_substituions, num_ref_elements):
+        '''Create new instance of DiffStats(edit_distance, num_deletions,
+           num_insertions, num_substituions, num_ref_elements, alignment)'''
+        return _tuple.__new__(_cls, (edit_distance, num_deletions,
+                                     num_insertions, num_substituions,
+                                     num_ref_elements))
+
+    @classmethod
+    def _make(cls, iterable, new=tuple.__new__, len=len):
+        'Make a new DiffStats object from a sequence or iterable'
+        result = new(cls, iterable)
+        if len(result) != 5:
+            raise TypeError('Expected 5 arguments, got %d' % len(result))
+        return result
+
+    def _replace(_self, **kwds):
+        '''Return a new StatsTuple object
+            replacing specified fields with new values'''
+        result = _self._make(map(kwds.pop, ('edit_distance', 'num_deletions',
+                                            'num_insertions',
+                                            'num_substituions',
+                                            'num_ref_elements'), _self))
+        if kwds:
+            raise ValueError('Got unexpected field names: %r' % list(kwds))
+        return result
+
+    def __repr__(self):
+        'Return a nicely formatted representation string'
+        return self.__class__.__name__ + (
+                    '(edit_distance=%r, num_deletions=%r, num_insertions=%r, '
+                    'num_substituions=%r, num_ref_elements=%r)' % self)
+
+    def _asdict(self):
+        'Return a new OrderedDict which maps field names to their values.'
+        return OrderedDict(zip(self._fields, self))
+
+    def __getnewargs__(self):
+        'Return self as a plain tuple.  Used by copy and pickle.'
+        return tuple(self)
+
+    def __add__(self, other):
+        '''
+        add all the attributes together except for the alignment and return a
+        new StatsTuple object
+        '''
+        return StatsTuple(*(i + j for i, j in zip(self, other)))
+
+    edit_distance = _property(_itemgetter(0), doc='Alias for field number 0')
+    num_deletions = _property(_itemgetter(1), doc='Alias for field number 1')
+    num_insertions = _property(_itemgetter(2), doc='Alias for field number 2')
+    num_substituions = _property(_itemgetter(3), doc='Alias for field number 3')
+    num_ref_elements = _property(_itemgetter(4), doc='Alias for field number 4')
+
+
+class WERCalculator():
+    '''
+    Word-Error-Rate Calculator
 
     Parameters:
-    -----------
-        ref : iterable
-            the "reference" iterable, e.g. elements present in ref but absent
-            in hypothesis will be deletions.
-        hypothesis : iterable
-            the "hypothesis iterable", e.g. elements present in hypothesis but
-            absent in ref will be insertions
+    ----------
+        reference : iterable
+        hypothesis : interable
 
-    Returns:
-    --------
-        wer : float
-            Word-Error-Rate
+
+        Return diff stats between reference and hypothesis, and optionally an
+        AlignmentPrinter object.
+
+        Parameters:
+        -----------
+            ref : iterable
+                the "reference" iterable, e.g. elements present in ref but absent
+                in hypothesis will be deletions.
+            hypothesis : iterable
+                the "hypothesis iterable", e.g. elements present in hypothesis but
+                absent in ref will be insertions
+            return_alignment : boolean (default : false)
+                will return an AlignmentPrinter object
+
+        Returns:
+        --------
+            a named tuple of
+                edit_distance : int
+                    the edit distance between ref and hypothesis (where deletions,
+                    insertions, and substitutions all have an equal penalty of 1)
+                num_deletions : int
+                    the number of deletions
+                num_insertions : int
+                    the number of insertions
+                num_substitutions : int
+                    the number of substituions
+                num_ref_elements : int
+                    the total number of elements in ref
+                alignment : AlignmentPrinter (only if return_alignment == True)
+
     '''
-    distance_matrix = get_distance_matrix(ref, hypothesis)
+    def __init__(self, reference, hypothesis):
+        self.reference = reference
+        self.hypothesis = hypothesis
 
-    i = len(distance_matrix) - 1
-    j = len(distance_matrix[i]) - 1
+        self.distance_matrix = get_distance_matrix(reference, hypothesis)
+        i = len(self.distance_matrix) - 1
+        j = len(self.distance_matrix[i]) - 1
+        self.edit_distance = self.distance_matrix[i][j]
+        self.num_ref_elements = i
 
-    edit_distance = distance_matrix[i][j]
+    def __repr__(self):
+        hypothesis_str = str(self.hypothesis)
+        reference_str = str(self.reference)
+        if len(hypothesis_str) > 25:
+            hypothesis_str = hypothesis_str[25:] + " ..."
 
-    # the reference is along the i dimension (rows) so the WER is:
-    return float(edit_distance)/i
+        if len(reference_str) > 25:
+            reference_str = reference_str[25:] + " ..."
+        return "WERCalculator({}, {})".format(hypothesis_str, reference_str)
 
+    def wer(self):
+        '''
+        return the word-error-rate
+        '''
+        return self.edit_distance/self.num_ref_elements
 
-def get_diff_stats(ref, hypothesis, return_alignment=False):
+    def set_diff_stats(self, prepare_alignment=False):
+        '''
+        set diff_stats tuple of (edit_distance, num_deletions, num_insertions,
+                                 num_substituions, num_ref_elements)
 
-    '''
-    Return diff stats between reference and hypothesis, and optionally an
-    AlignmentPrinter object.
+        if prepare_alignment is true, then we also get the three lists we need
+        to be able to print out a nice alignment (we only do this if we need
+        to, because it can slow things down if the text is long)
+        '''
+        reference = self.reference
+        hypothesis = self.hypothesis
+        num_ref_elements = self.num_ref_elements
+        i = num_ref_elements
+        j = len(self.hypothesis)
 
-    Parameters:
-    -----------
-        ref : iterable
-            the "reference" iterable, e.g. elements present in ref but absent
-            in hypothesis will be deletions.
-        hypothesis : iterable
-            the "hypothesis iterable", e.g. elements present in hypothesis but
-            absent in ref will be insertions
-        return_alignment : boolean (default : false)
-            will return an AlignmentPrinter object
+        edit_distance = self.edit_distance
+        distance_matrix = self.distance_matrix
 
-    Returns:
-    --------
-        a named tuple of
-            edit_distance : int
-                the edit distance between ref and hypothesis (where deletions,
-                insertions, and substitutions all have an equal penalty of 1)
-            num_deletions : int
-                the number of deletions
-            num_insertions : int
-                the number of insertions
-            num_substitutions : int
-                the number of substituions
-            num_ref_elements : int
-                the total number of elements in ref
-            alignment : AlignmentPrinter (only if return_alignment == True)
-    '''
-    distance_matrix = get_distance_matrix(ref, hypothesis)
+        num_deletions = 0
+        num_insertions = 0
+        num_substituions = 0
 
-    num_ref_elements = len(ref)
-    i = num_ref_elements
-    j = len(hypothesis)
+        if prepare_alignment:
+            # we'll need these if we want the alignment
+            align_ref_elements = []
+            align_hypothesis_elements = []
+            align_label_str = []
 
-    edit_distance = distance_matrix[i][j]
+        # start at the cell containing the edit distance and analyze the
+        # matrix to figure out what is a deletion, insertion, or
+        # substitution.
+        while i or j:
+            # if deletion
+            if distance_matrix[i][j] == distance_matrix[i-1][j] + 1:
+                num_deletions += 1
 
-    num_deletions = 0
-    num_insertions = 0
-    num_substituions = 0
+                if prepare_alignment:
+                    align_ref_elements.append(reference[i-1])
+                    align_hypothesis_elements.append(" ")
+                    align_label_str.append('D')
 
-    # we'll need these if we want the alignment
-    ref_elements = []
-    hypothesis_elements = []
-    label_str = []
+                i -= 1
 
-    # start at the cell containing the edit distance and analyze the matrix to
-    # figure out what is a deletion, insertion, or substitution.
-    while i or j:
-        # if deletion
-        if distance_matrix[i][j] == distance_matrix[i-1][j] + 1:
-            num_deletions += 1
+            # if insertion
+            elif distance_matrix[i][j] == distance_matrix[i][j-1] + 1:
+                num_insertions += 1
 
-            if return_alignment:
-                ref_elements.append(ref[i-1])
-                hypothesis_elements.append(" ")
-                label_str.append('D')
+                if prepare_alignment:
+                    align_ref_elements.append(" ")
+                    align_hypothesis_elements.append(hypothesis[j-1])
+                    align_label_str.append('I')
 
-            i -= 1
+                j -= 1
 
-        # if insertion
-        elif distance_matrix[i][j] == distance_matrix[i][j-1] + 1:
-            num_insertions += 1
-
-            if return_alignment:
-                ref_elements.append(" ")
-                hypothesis_elements.append(hypothesis[j-1])
-                label_str.append('I')
-
-            j -= 1
-
-        # if match or substitution
-        else:
-            ref_element = ref[i-1]
-            hypothesis_element = hypothesis[j-1]
-
-            if ref_element != hypothesis_element:
-                num_substituions += 1
-                label = 'S'
+            # if match or substitution
             else:
-                label = ' '
+                ref_element = reference[i-1]
+                hypothesis_element = hypothesis[j-1]
 
-            if return_alignment:
-                ref_elements.append(ref_element)
-                hypothesis_elements.append(hypothesis_element)
-                label_str.append(label)
+                if ref_element != hypothesis_element:
+                    num_substituions += 1
+                    label = 'S'
+                else:
+                    label = ' '
 
-            i -= 1
-            j -= 1
+                if prepare_alignment:
+                    align_ref_elements.append(ref_element)
+                    align_hypothesis_elements.append(hypothesis_element)
+                    align_label_str.append(label)
 
-    if return_alignment:
+                i -= 1
+                j -= 1
 
-        ref_elements.reverse()
-        hypothesis_elements.reverse()
-        label_str.reverse()
+        if prepare_alignment:
+            align_ref_elements.reverse()
+            align_hypothesis_elements.reverse()
+            align_label_str.reverse()
 
-        alignment = AlignmentPrinter(ref_elements,
-                                     hypothesis_elements,
-                                     label_str)
+            self.align_ref_elements = align_ref_elements
+            self.align_hypothesis_elements = align_hypothesis_elements
+            self.align_label_str = align_label_str
 
-        return DiffStats(edit_distance, num_deletions, num_insertions,
-                         num_substituions, num_ref_elements, alignment)
-    else:
-        return DiffStats(edit_distance, num_deletions, num_insertions,
-                         num_substituions, num_ref_elements, None)
+        diff_stats = StatsTuple(edit_distance, num_deletions, num_insertions,
+                                num_substituions, num_ref_elements)
+        self._diff_stats = diff_stats
+
+    @property
+    def diff_stats(self):
+        '''
+        return the diff_stats object with edit distance and other stats
+        '''
+        if not hasattr(self, '_diff_stats'):
+            self.set_diff_stats()
+        return self._diff_stats
+
+    def print_alignment(self, orient='vertical'):
+        '''
+        pretty prints an alignment to stdout
+
+        Parameters:
+        -----------
+            orient : str ('horizontal' or 'vertical', defaults to 'horizontal')
+                orientation of printout.  For long documents, 'vertical' will
+                be more readable since this is not smart enough to insert
+                appropriate line breaks in horizonal mode.
+        '''
+        assert orient == 'horizontal' or orient == 'vertical'
+
+        if not hasattr(self, 'align_ref_elements'):
+            self.set_diff_stats(prepare_alignment=True)
+
+        assert (len(self.align_ref_elements) ==
+                len(self.align_hypothesis_elements) ==
+                len(self.align_label_str))
+
+        if orient == 'horizontal':
+            # we'll need to pad things to elements line up nicely horizontally
+
+            # list of the maxiumum lengths of  (reference, hypothesis, label)
+            max_lengths = [max(map(len, e)) for e
+                           in zip(self.align_ref_elements,
+                                  self.align_hypothesis_elements,
+                                  self.align_label_str)]
+
+            # list of reference elements with padding appropriate for printing
+            padded_ref_elements = list(map(str.ljust,
+                                           self.align_ref_elements,
+                                           max_lengths))
+
+            # list of hypothesis elements with padding appropriate for printing
+            padded_hyp_elements = list(map(str.ljust,
+                                           self.align_hypothesis_elements,
+                                           max_lengths))
+
+            # list of label elements with padding appropriate for printing
+            padded_label_elements = list(map(str.ljust,
+                                             self.align_label_str,
+                                             max_lengths))
+
+            print(" ".join(padded_ref_elements))
+            print(" ".join(padded_hyp_elements))
+            print(" ".join(padded_label_elements))
+
+        else:
+            # we'll need to pad things to create nice columns, which means that
+            # we just have to add padding to the right side of the references
+
+            # maximum length of any element
+            max_length = max(map(len,
+                                 list(chain(self.align_ref_elements,
+                                            self.align_hypothesis_elements))))
+            # do the padding
+            padded_ref_elements = list(map(lambda x: str.ljust(x, max_length),
+                                           self.align_ref_elements))
+            for x in zip(self.align_label_str,
+                         padded_ref_elements,
+                         self.align_hypothesis_elements):
+
+                print(" ".join(x))
 
 
 def main():
@@ -352,30 +421,22 @@ def main():
         reference.sort()
         hypothesis.sort()
 
+    wer_calculator = WERCalculator(reference, hypothesis)
+
+    if args.print_alignment:
+        wer_calculator.set_diff_stats(prepare_alignment=True)
+
     if args.verbose:
-        return_alignment = True if args.print_alignment else False
-
-        diff_stats = get_diff_stats(reference, hypothesis, return_alignment)
-
-        (edit_distance,
-         num_deletions,
-         num_insertions,
-         num_substituions,
-         num_ref_elements,
-         alignment) = diff_stats
-
-        wer = float(edit_distance)/num_ref_elements
 
         print("WER    EditDist #Substit #Delete #Insert #RefToks")
         print("---    -------- -------- ------- ------- --------")
         print("{:.4f} {: >8d} {: >8d} {: >7d} {: >7d} {: >8}".format(
-                        wer, edit_distance, num_substituions, num_deletions,
-                        num_insertions, num_ref_elements))
+                        wer_calculator.wer(), *wer_calculator.diff_stats))
     else:
-        print("WER: ", get_simple_wer(reference, hypothesis))
+        print("WER: ", wer_calculator.wer())
 
     if args.print_alignment:
-        alignment.print(orient=args.print_alignment)
+        wer_calculator.print_alignment(orient=args.print_alignment)
 
 
 if __name__ == '__main__':
