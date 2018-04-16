@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 '''
+
+TODO: UPDATE COMMENTS AND DOCUMENTATION!
+
 Module containing useful functions to get WER, edit distance, numbers of
 deletions, substitutions, insertions, and a printed alignment between reference
 and hypothesis texts.
@@ -27,6 +30,7 @@ D bear
 import argparse
 from collections import OrderedDict
 from itertools import chain
+from os import path
 
 # used in StatsTuple:
 from builtins import property as _property, tuple as _tuple
@@ -381,15 +385,120 @@ class WERCalculator():
                 print(" ".join(x))
 
 
+def process_single_pair(args, print_headers=True, return_diff_stats=False):
+    '''
+    process a single pair of files.  Called by main when running in single pair
+    mode, or by process_batch when running in batch mode.  When running in
+    batch mode, return_diff_stats is True, and this function will return the
+    diff_stats from this calculation so process_batch can keep a running total
+    '''
+    with open(args.reference_file) as f:
+        reference = f.read().split()
+
+    with open(args.hypothesis_file) as f:
+        hypothesis = f.read().split()
+
+    if args.ignore_order:
+        # we ignore the impact of the order by sorting the elements
+        reference.sort()
+        hypothesis.sort()
+
+    wer_calculator = WERCalculator(reference, hypothesis)
+
+    # if we're going to need to print the alignment, we'd better prepare for it
+    if args.print_alignment:
+        wer_calculator.set_diff_stats(prepare_alignment=True)
+
+    # we'll only print the first 25 characters of the filename
+    filename = path.basename(args.hypothesis_file)[:25]
+
+    if args.verbose:
+        # print full details
+        if print_headers:
+            print("FILENAME                  WER    EditDist #Substit #Delete #Insert #RefToks")
+            print("------------------------- ------ -------- -------- ------- ------- --------")
+
+        print("{: <25} {:.4f} {: >8d} {: >8d} {: >7d} {: >7d} {: >8}".format(
+                    filename, wer_calculator.wer(), *wer_calculator.diff_stats))
+    else:
+        # just the WER please
+        print(filename, "WER: ", wer_calculator.wer())
+
+    if args.print_alignment:
+        wer_calculator.print_alignment(orient=args.print_alignment)
+
+    if return_diff_stats:
+        return wer_calculator.diff_stats
+
+
+def process_batch(args):
+
+    running_total_diff_stats = StatsTuple(0, 0, 0, 0, 0)
+
+    line_counter = 0
+
+    with open(args.mapping_file) as f:
+
+        # we only want to print headers once (unless we're also printing the
+        # alignment), so we'll need to keep track of that:
+        first_file = True
+
+        for line in f.readlines():
+
+            line_counter += 1
+
+            parsed_line = line.split()
+
+            if not parsed_line:
+                continue
+
+            if parsed_line[0].startswith("#"):
+                continue
+
+            if len(parsed_line) != 2:
+                print("Error: line {} of mapping file contains more than a "
+                      "pair of paths".format(i), file=stderr)
+                continue
+
+            # this is a little hacky, manipulating the args object,
+            # but it seems to work
+            args.hypothesis_file, args.reference_file = parsed_line
+
+            # we only print the headers the first time around, or if we're
+            # also printing the alignment
+            if first_file or args.print_alignment:
+                print_headers = True
+                first_file = False
+            else:
+                print_headers = False
+
+            temp_diff_stats = process_single_pair(args,
+                                                  print_headers=print_headers,
+                                                  return_diff_stats=True)
+
+            running_total_diff_stats += temp_diff_stats
+
+    # print the grand totals
+    total_wer = (running_total_diff_stats.edit_distance /
+                 running_total_diff_stats.num_ref_elements)
+
+    if args.verbose:
+        print("------------------------- ------ -------- -------- ------- ------- --------")
+        print("{: <25} {:.4f} {: >8d} {: >8d} {: >7d} {: >7d} {: >8}".format(
+            'WEIGHTED AVERAGE WER', total_wer, *running_total_diff_stats))
+    else:
+        print('------------------------------')
+        print('WEIGHTED AVERAGE WER: ', total_wer)
+
+
 def main():
+    # set up the main parser
     parser = argparse.ArgumentParser(
-        description="Calculates Word-Error-Rate (WER) for 2 files, ignoring "
-                    "whitespace.  Note that WER is defined as (#insertions + "
-                    "#deletions + #substitutions)/(#tokens in reference)")
-    parser.add_argument("reference_file",
-                        help='File to use as Reference')
-    parser.add_argument("hypothesis_file",
-                        help='File to use as hypothesis')
+        description="Calculates Word-Error-Rate (WER) Note that WER is "
+                    "defined as (#insertions + #deletions + "
+                    "#substitutions) / (#tokens in reference)")
+
+    # add optional arguments for main parser
     parser.add_argument("--verbose", "-v",
                         help="In addition to WER, prints edit distance, "
                              "and number of deletions, insertions, and "
@@ -408,35 +517,39 @@ def main():
                         action='store_true',
                         default=False)
 
+    # set up subparser for single pair mode
+    subparsers = parser.add_subparsers(
+                        title='subcommands',
+                        help='indicates batch processing or single pair mode')
+
+    single_parser = subparsers.add_parser('single',
+                                          help='calculate WER on a single '
+                                               'pair of reference and '
+                                               'hypothesis files')
+    single_parser.add_argument("reference_file",
+                               help='File to use as Reference')
+    single_parser.add_argument("hypothesis_file",
+                               help='File to use as Hypothesis')
+    single_parser.set_defaults(main_func=process_single_pair)
+
+    # set up subparser for batch mode
+    batch_parser = subparsers.add_parser(
+                    'batch',
+                    help='calculate WER on a batch of pairs of reference '
+                         'files and hypothesis files, stored in a file '
+                         'indicating their mapping')
+
+    batch_parser.add_argument(
+                    'mapping_file',
+                    help='file of mappings of reference files to thier '
+                         'hypothesis files.  Each line represents one '
+                         'mapping, where the first item on the line is a path '
+                         'to the reference file, followed by whitespace, '
+                         'followed by the path to the hypothesis file')
+    batch_parser.set_defaults(main_func=process_batch)
+
     args = parser.parse_args()
-
-    with open(args.reference_file) as f:
-        reference = f.read().split()
-
-    with open(args.hypothesis_file) as f:
-        hypothesis = f.read().split()
-
-    if args.ignore_order:
-        # we ignore the impact of the order by sorting the elements
-        reference.sort()
-        hypothesis.sort()
-
-    wer_calculator = WERCalculator(reference, hypothesis)
-
-    if args.print_alignment:
-        wer_calculator.set_diff_stats(prepare_alignment=True)
-
-    if args.verbose:
-
-        print("WER    EditDist #Substit #Delete #Insert #RefToks")
-        print("---    -------- -------- ------- ------- --------")
-        print("{:.4f} {: >8d} {: >8d} {: >7d} {: >7d} {: >8}".format(
-                        wer_calculator.wer(), *wer_calculator.diff_stats))
-    else:
-        print("WER: ", wer_calculator.wer())
-
-    if args.print_alignment:
-        wer_calculator.print_alignment(orient=args.print_alignment)
+    args.main_func(args)
 
 
 if __name__ == '__main__':
