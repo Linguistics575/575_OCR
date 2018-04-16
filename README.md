@@ -12,3 +12,5 @@ At present, this repository contains resources in 2 directories:
                             recognition.  Jimmy is generally really happy with it.
                             OCR recognition could do with more testing.
     15 April, 5:00 PM PDT : WER script can now operate in batch mode and print out a summary.
+    15 April, 9:00 PM PDT : Checked in evaluation results of Azure API on IAM Handwriting dataset
+
