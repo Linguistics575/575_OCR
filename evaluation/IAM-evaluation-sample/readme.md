@@ -1,4 +1,4 @@
-# Evalation of MS   Handwriting Recognizer on sample from IAM Handwriting database.
+# Evaluation of MS Handwriting Recognizer on sample from IAM Handwriting database.
 
 ### Procedure:
 1. Pulled sample of 100 forms from IAM database, using [take_evaluation_sample.py](https://github.com/Linguistics575/575_OCR/blob/master/evaluation/IAM-evaluation-sample/take_evaluation_sample.py).  Identfiers for the sample are in [sample_forms.ls](https://github.com/Linguistics575/575_OCR/blob/master/evaluation/IAM-evaluation-sample/sample_forms.ls).
@@ -13,4 +13,4 @@
 
 5. *The WER was 13.64% !!!!*
 
-### Full evaluation results in [evalution_results.txt](https://github.com/Linguistics575/575_OCR/blob/master/evaluation/IAM-evaluation-sample/evalution_results.txt)
+### Full evaluation results in [evaluation_results.txt](https://github.com/Linguistics575/575_OCR/blob/master/evaluation/IAM-evaluation-sample/evaluation_results.txt)
