@@ -145,8 +145,7 @@ class StatsTuple(tuple):
 
     def __add__(self, other):
         '''
-        add all the attributes together except for the alignment and return a
-        new StatsTuple object
+        add all the attributes together and return a new StatsTuple object
         '''
         return StatsTuple(*(i + j for i, j in zip(self, other)))
 
@@ -166,37 +165,14 @@ class WERCalculator():
         reference : iterable
         hypothesis : interable
 
-
-        Return diff stats between reference and hypothesis, and optionally an
-        AlignmentPrinter object.
-
         Parameters:
         -----------
             ref : iterable
-                the "reference" iterable, e.g. elements present in ref but absent
-                in hypothesis will be deletions.
+                the "reference" iterable, e.g. elements present in reference
+                but absent in hypothesis will be deletions.
             hypothesis : iterable
-                the "hypothesis iterable", e.g. elements present in hypothesis but
-                absent in ref will be insertions
-            return_alignment : boolean (default : false)
-                will return an AlignmentPrinter object
-
-        Returns:
-        --------
-            a named tuple of
-                edit_distance : int
-                    the edit distance between ref and hypothesis (where deletions,
-                    insertions, and substitutions all have an equal penalty of 1)
-                num_deletions : int
-                    the number of deletions
-                num_insertions : int
-                    the number of insertions
-                num_substitutions : int
-                    the number of substituions
-                num_ref_elements : int
-                    the total number of elements in ref
-                alignment : AlignmentPrinter (only if return_alignment == True)
-
+                the "hypothesis" iterable, e.g. elements present in hypothesis
+                but absent in reference will be insertions
     '''
     def __init__(self, reference, hypothesis):
         self.reference = reference
@@ -432,7 +408,9 @@ def process_single_pair(args, print_headers=True, return_diff_stats=False):
 
 
 def process_batch(args):
-
+    '''
+    process a batch of files, calling process_single_pair on each one of them
+    '''
     running_total_diff_stats = StatsTuple(0, 0, 0, 0, 0)
 
     line_counter = 0
@@ -472,9 +450,15 @@ def process_batch(args):
             else:
                 print_headers = False
 
-            temp_diff_stats = process_single_pair(args,
-                                                  print_headers=print_headers,
-                                                  return_diff_stats=True)
+            try:
+                temp_diff_stats = process_single_pair(args,
+                                                      print_headers=print_headers,
+                                                      return_diff_stats=True)
+            except FileNotFoundError as e:
+                print("[Errno {}] processing line {} of {}: No such file: {}".format(
+                        e.errno, line_counter, args.mapping_file, e.filename),
+                     file=stderr)
+                continue
 
             running_total_diff_stats += temp_diff_stats
 
@@ -498,25 +482,6 @@ def main():
                     "defined as (#insertions + #deletions + "
                     "#substitutions) / (#tokens in reference)")
 
-    # add optional arguments for main parser
-    parser.add_argument("--verbose", "-v",
-                        help="In addition to WER, prints edit distance, "
-                             "and number of deletions, insertions, and "
-                             "substitutions.",
-                        action='store_true',
-                        default=False)
-    parser.add_argument("--print_alignment", "-a",
-                        required=False, choices=['horizontal', 'vertical'],
-                        help="Print the aligned text horizonally or "
-                             "vertically.  vertical will be more readable "
-                             "for longer texts, but horizontal will be more "
-                             "concise.")
-    parser.add_argument("--ignore_order", "-i",
-                        help='Will ignore order of tokens when set (by '
-                             'sorting the hypothesis and reference sequences)',
-                        action='store_true',
-                        default=False)
-
     # set up subparser for single pair mode
     subparsers = parser.add_subparsers(
                         title='subcommands',
@@ -526,11 +491,33 @@ def main():
                                           help='calculate WER on a single '
                                                'pair of reference and '
                                                'hypothesis files')
+    # main function for this sub_parser:
+    single_parser.set_defaults(main_func=process_single_pair)
+
+    # arguments
     single_parser.add_argument("reference_file",
                                help='File to use as Reference')
     single_parser.add_argument("hypothesis_file",
                                help='File to use as Hypothesis')
-    single_parser.set_defaults(main_func=process_single_pair)
+
+    # add optional arguments for single pair mode.
+    single_parser.add_argument("--verbose", "-v",
+                               help="In addition to WER, prints edit "
+                                    "distance, and number of deletions, "
+                                    "insertions, and substitutions.",
+                               action='store_true',
+                               default=False)
+    single_parser.add_argument("--print_alignment", "-a",
+                               required=False, choices=['horizontal', 'vertical'],
+                               help="Print the aligned text horizonally or "
+                                    "vertically.  vertical will be more readable "
+                                    "for longer texts, but horizontal will be more "
+                                    "concise.")
+    single_parser.add_argument("--ignore_order", "-i",
+                               help='Will ignore order of tokens when set (by '
+                                    'sorting the hypothesis and reference sequences)',
+                               action='store_true',
+                               default=False)
 
     # set up subparser for batch mode
     batch_parser = subparsers.add_parser(
@@ -539,6 +526,10 @@ def main():
                          'files and hypothesis files, stored in a file '
                          'indicating their mapping')
 
+    # main function for batch mode:
+    batch_parser.set_defaults(main_func=process_batch)
+
+    # argument
     batch_parser.add_argument(
                     'mapping_file',
                     help='file of mappings of reference files to thier '
@@ -546,7 +537,26 @@ def main():
                          'mapping, where the first item on the line is a path '
                          'to the reference file, followed by whitespace, '
                          'followed by the path to the hypothesis file')
-    batch_parser.set_defaults(main_func=process_batch)
+
+    # optional arguments (these are the same as for single mode, but it makes
+    # the use of the command more intuitive)
+    batch_parser.add_argument("--verbose", "-v",
+                              help="In addition to WER, prints edit "
+                                   "distance, and number of deletions, "
+                                   "insertions, and substitutions.",
+                              action='store_true',
+                              default=False)
+    batch_parser.add_argument("--print_alignment", "-a",
+                              required=False, choices=['horizontal', 'vertical'],
+                              help="Print the aligned text horizonally or "
+                                   "vertically.  vertical will be more readable "
+                                   "for longer texts, but horizontal will be more "
+                                   "concise.")
+    batch_parser.add_argument("--ignore_order", "-i",
+                              help='Will ignore order of tokens when set (by '
+                                   'sorting the hypothesis and reference sequences)',
+                              action='store_true',
+                              default=False)
 
     args = parser.parse_args()
     args.main_func(args)
