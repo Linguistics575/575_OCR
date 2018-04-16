@@ -15,7 +15,7 @@ To calculate the WER on a single <_reference_, _hypothesis_> pair, the form of t
 ##### batch mode
 To calcuate the WER on a batch of <_reference_, _hypothesis_> pairs, the form of the command is:
 `python wer.py batch mapping_file`
-where `mapping_file` is a text file listing pairs of whitespace-separated paths, with the first path pointing to the reference file and the second path pointing to the hypothesis file, i.e.:
+where `mapping_file` is a text file listing pairs of whitespace-separated paths, with the first path pointing to the reference file and the second path pointing to the hypothesis file, e.g.:
 ```
 path/to/reference/for/text1.txt     path/to/hypothesis/for/text1.txt
 path/to/reference/for/text2.txt     path/to/hypothesis/for/text2.txt
@@ -48,7 +48,7 @@ In addition, it is possible to pass the following options in either mode:
 ```
 ##### Examples:
 ```
-% python ../WER/wer.py batch evaluation_paths.ls --verbose
+% python wer.py batch mapping_file.ls --verbose
 FILENAME                  WER    EditDist #Substit #Delete #Insert #RefToks
 ------------------------- ------ -------- -------- ------- ------- --------
 a01-007.recognized.txt    0.1014        7        4       0       3       69
