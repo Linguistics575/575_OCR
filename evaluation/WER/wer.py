@@ -462,7 +462,7 @@ def process_batch(args):
 
             # this is a little hacky, manipulating the args object,
             # but it seems to work
-            args.hypothesis_file, args.reference_file = parsed_line
+            args.reference_file, args.hypothesis_file = parsed_line
 
             # we only print the headers the first time around, or if we're
             # also printing the alignment
