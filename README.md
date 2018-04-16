@@ -4,6 +4,11 @@ At present, this repository contains resources in 2 directories:
 - `azure/`: contains a script to run an image through the MS Azure Handwriting Recognition API and related resources.  (See readme there)
 - `evaluation/`: contains a script to calculate Word-Error-Rate and various experiments and evaluations.
 ---
+    7 April, 2:25 PM PDT: Added Python utility files for PDFs. Added one sample PDF and extracted text. (Other PDFs and output will be placed in dropbox, since they get rather large.)
+
+    10 April, 7:25 PM PDT: Checked in WER script that now accurately calculates WER.
+
+    11 April, 11:38 AM PDT: Checked in log file to track resolution used on Martineau documents. (Baedeker data yet to be added.)
 
     10 April, 7:25 PM PDT: Checked in WER script that now accurately calculates WER.
     10 April, 7:54 PM PDT: Checked in script to take sample from IAM handwriting DB
