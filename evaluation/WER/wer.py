@@ -1,13 +1,7 @@
 #!/usr/bin/env python3
 '''
-
-TODO: UPDATE COMMENTS AND DOCUMENTATION!
-
-Module containing useful functions to get WER, edit distance, numbers of
-deletions, substitutions, insertions, and a printed alignment between reference
-and hypothesis texts.
-
-Can be run as a script on two files.
+script to get WER, edit distance, numbers of deletions, substitutions,
+insertions, and a printed alignment between reference and hypothesis texts.
 
 Verbose output looks like this:
     WER    EditDist #Substit #Delete #Insert #RefToks
@@ -26,6 +20,8 @@ I       John
 S was   had
 S a     hair.
 D bear
+
+@author Jimmy Bruno
 '''
 import argparse
 from collections import OrderedDict
@@ -158,7 +154,7 @@ class StatsTuple(tuple):
 
 def get_breakpoints(elements, max_characters):
     '''
-    return the indices of the element in elements to break on so that the
+    return the indices of the element in elements to break on, so that the
     printed output does not exceed max_characters when joining the elements
     to form an putput string. Called by WERCalculator.print_alignment().
 
@@ -192,18 +188,13 @@ class WERCalculator():
     Word-Error-Rate Calculator
 
     Parameters:
-    ----------
-        reference : iterable
-        hypothesis : interable
-
-        Parameters:
-        -----------
-            ref : iterable
-                the "reference" iterable, e.g. elements present in reference
-                but absent in hypothesis will be deletions.
-            hypothesis : iterable
-                the "hypothesis" iterable, e.g. elements present in hypothesis
-                but absent in reference will be insertions
+    -----------
+        ref : iterable
+            the "reference" iterable, e.g. elements present in reference
+            but absent in hypothesis will be deletions.
+        hypothesis : iterable
+            the "hypothesis" iterable, e.g. elements present in hypothesis
+            but absent in reference will be insertions
     '''
     def __init__(self, reference, hypothesis):
         self.reference = reference
@@ -333,9 +324,8 @@ class WERCalculator():
         Parameters:
         -----------
             orient : str ('horizontal' or 'vertical', defaults to 'horizontal')
-                orientation of printout.  For long documents, 'vertical' will
-                be more readable since this is not smart enough to insert
-                appropriate line breaks in horizonal mode.
+                orientation of printout. 'horizontal' will insert new lines
+                at about 70 characters across.
         '''
         assert orient == 'horizontal' or orient == 'vertical'
 
