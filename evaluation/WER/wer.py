@@ -1,13 +1,7 @@
 #!/usr/bin/env python3
 '''
-
-TODO: UPDATE COMMENTS AND DOCUMENTATION!
-
-Module containing useful functions to get WER, edit distance, numbers of
-deletions, substitutions, insertions, and a printed alignment between reference
-and hypothesis texts.
-
-Can be run as a script on two files.
+script to get WER, edit distance, numbers of deletions, substitutions,
+insertions, and a printed alignment between reference and hypothesis texts.
 
 Verbose output looks like this:
     WER    EditDist #Substit #Delete #Insert #RefToks
@@ -26,6 +20,8 @@ I       John
 S was   had
 S a     hair.
 D bear
+
+@author Jimmy Bruno
 '''
 import argparse
 from collections import OrderedDict
@@ -156,23 +152,49 @@ class StatsTuple(tuple):
     num_ref_elements = _property(_itemgetter(4), doc='Alias for field number 4')
 
 
+def get_breakpoints(elements, max_characters):
+    '''
+    return the indices of the element in elements to break on, so that the
+    printed output does not exceed max_characters when joining the elements
+    to form an putput string. Called by WERCalculator.print_alignment().
+
+    Parameters:
+    -----------
+        elements : iterable
+        max_characters : int
+
+    Returns:
+        breakpoints : list
+    '''
+    breakpoints = []
+
+    length_tracker = 0
+
+    for i, element in enumerate(elements):
+        # We add + 1 throughout for the space when we print
+        if length_tracker + len(element) + 1 > max_characters:
+            # this will start a new line, so capture the index as a breakpoint
+            breakpoints.append(i)
+            length_tracker = len(element) + 1
+
+        else:
+            length_tracker += len(element) + 1
+
+    return breakpoints
+
+
 class WERCalculator():
     '''
     Word-Error-Rate Calculator
 
     Parameters:
-    ----------
-        reference : iterable
-        hypothesis : interable
-
-        Parameters:
-        -----------
-            ref : iterable
-                the "reference" iterable, e.g. elements present in reference
-                but absent in hypothesis will be deletions.
-            hypothesis : iterable
-                the "hypothesis" iterable, e.g. elements present in hypothesis
-                but absent in reference will be insertions
+    -----------
+        ref : iterable
+            the "reference" iterable, e.g. elements present in reference
+            but absent in hypothesis will be deletions.
+        hypothesis : iterable
+            the "hypothesis" iterable, e.g. elements present in hypothesis
+            but absent in reference will be insertions
     '''
     def __init__(self, reference, hypothesis):
         self.reference = reference
@@ -187,11 +209,11 @@ class WERCalculator():
     def __repr__(self):
         hypothesis_str = str(self.hypothesis)
         reference_str = str(self.reference)
-        if len(hypothesis_str) > 25:
-            hypothesis_str = hypothesis_str[25:] + " ..."
+        if len(hypothesis_str) > 10:
+            hypothesis_str = hypothesis_str[10:] + " ..."
 
-        if len(reference_str) > 25:
-            reference_str = reference_str[25:] + " ..."
+        if len(reference_str) > 10:
+            reference_str = reference_str[10:] + " ..."
         return "WERCalculator({}, {})".format(hypothesis_str, reference_str)
 
     def wer(self):
@@ -295,16 +317,15 @@ class WERCalculator():
             self.set_diff_stats()
         return self._diff_stats
 
-    def print_alignment(self, orient='vertical'):
+    def print_alignment(self, orient='horizontal'):
         '''
         pretty prints an alignment to stdout
 
         Parameters:
         -----------
             orient : str ('horizontal' or 'vertical', defaults to 'horizontal')
-                orientation of printout.  For long documents, 'vertical' will
-                be more readable since this is not smart enough to insert
-                appropriate line breaks in horizonal mode.
+                orientation of printout. 'horizontal' will insert new lines
+                at about 70 characters across.
         '''
         assert orient == 'horizontal' or orient == 'vertical'
 
@@ -314,6 +335,9 @@ class WERCalculator():
         assert (len(self.align_ref_elements) ==
                 len(self.align_hypothesis_elements) ==
                 len(self.align_label_str))
+
+        # just print a delimiter to separate this from the stats
+        print("---")
 
         if orient == 'horizontal':
             # we'll need to pad things to elements line up nicely horizontally
@@ -339,10 +363,43 @@ class WERCalculator():
                                              self.align_label_str,
                                              max_lengths))
 
-            print(" ".join(padded_ref_elements))
-            print(" ".join(padded_hyp_elements))
-            print(" ".join(padded_label_elements))
+            # breakpoints that indicate the element that starts a new line.
+            # this is so that we can cut the output off at 80 characters so it
+            # doesn't run off of the screen
+            breakpoints = get_breakpoints(padded_ref_elements, 79)
 
+            start_index = 0
+            end_index = None
+
+            # print the first slice if there are any breakpoints
+            if breakpoints:
+                end_index = breakpoints[0]
+                print(" ".join(padded_ref_elements[start_index:end_index]))
+                print(" ".join(padded_hyp_elements[start_index:end_index]))
+                print(" ".join(padded_label_elements[start_index:end_index]))
+                print("")
+
+                # iterate through the rest and print the lines
+                for start_index, end_index in zip(*[breakpoints[i:]
+                                                    for i in range(2)]):
+
+                    print(" ".join(padded_ref_elements[start_index:end_index]))
+                    print(" ".join(padded_hyp_elements[start_index:end_index]))
+                    print(" ".join(padded_label_elements[start_index:end_index]))
+                    print("")
+
+                # if there was 2 or more breakpoints, there will be an
+                # end_index here, and that will be the start_index for the last
+                # printing
+                if end_index:
+                    start_index = end_index
+
+            # and print the last one left in the "buffer", or perhaps the only
+            # one that exists
+            print(" ".join(padded_ref_elements[start_index:]))
+            print(" ".join(padded_hyp_elements[start_index:]))
+            print(" ".join(padded_label_elements[start_index:]))
+            print("")
         else:
             # we'll need to pad things to create nice columns, which means that
             # we just have to add padding to the right side of the references
