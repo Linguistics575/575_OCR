@@ -448,10 +448,10 @@ def process_single_pair(args, print_headers=True, return_diff_stats=False):
     if args.verbose:
         # print full details
         if print_headers:
-            print("FILENAME                  WER    EditDist #Substit #Delete #Insert #RefToks")
-            print("------------------------- ------ -------- -------- ------- ------- --------")
+            print("FILENAME                  WER    EditDist #Delete #Insert #Substit #RefToks")
+            print("------------------------- ------ -------- -------- ------ -------- --------")
 
-        print("{: <25} {:.4f} {: >8d} {: >8d} {: >7d} {: >7d} {: >8}".format(
+        print("{: <25} {:.4f} {: >8d} {: >7d} {: >7d} {: >8d} {: >8}".format(
                     filename, wer_calculator.wer(), *wer_calculator.diff_stats))
     else:
         # just the WER please
@@ -524,8 +524,8 @@ def process_batch(args):
                  running_total_diff_stats.num_ref_elements)
 
     if args.verbose:
-        print("------------------------- ------ -------- -------- ------- ------- --------")
-        print("{: <25} {:.4f} {: >8d} {: >8d} {: >7d} {: >7d} {: >8}".format(
+        print("------------------------- ------ -------- -------- ------ -------- --------")
+        print("{: <25} {:.4f} {: >8d} {: >7d} {: >7d} {: >8d} {: >8}".format(
             'WEIGHTED AVERAGE WER', total_wer, *running_total_diff_stats))
     else:
         print('------------------------------')
