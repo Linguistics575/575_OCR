@@ -1,0 +1,1 @@
+Upon reviewing the subsample I wanted to send to Sarah, I noticed that most of the recognition errors had to do with punctuation, so I thought I might look at the correlation of the percent of the word tokens that represent punctuation with the wer.  I found that they had a pearson correlation of .4.
