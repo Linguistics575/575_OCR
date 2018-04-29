@@ -19,4 +19,4 @@ At present, this repository contains resources in 2 directories:
     15 April, 5:00 PM PDT : WER script can now operate in batch mode and print out a summary.
     15 April, 9:00 PM PDT : Checked in evaluation results of Azure API on IAM Handwriting dataset
     18 April, 9:32 PM PDT : Bugfix in wer.py : headers were mislabeled
-
+    29 April, 2:00 PM PDT : checked in Jupyter Notebook with slider to tune in binarization parameters
