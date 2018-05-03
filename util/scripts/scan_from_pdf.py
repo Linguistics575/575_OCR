@@ -14,6 +14,7 @@ argparser.add_argument('-p', type=int, default=0, help='Start page number (defau
 
 args = argparser.parse_args()
 convert_cmd = 'convert -density %d %s -strip -background white -alpha off %s'
+page_count_cmd = "pdfinfo %s | grep 'Pages' | awk '{print $2}'"
 
 for fname in args.filename:
 
@@ -34,8 +35,10 @@ for fname in args.filename:
         else:
             pdfFilePath = fname
 
-        pdfFile = open(pdfFilePath, 'rb')
-        pdfreader = PdfFileReader(pdfFile)
+        pdf_page_count_cmd = page_count_cmd % pdfFilePath
+        pageCount = int(os.popen(pdf_page_count_cmd).read().strip())
+        # pdfFile = open(pdfFilePath, 'rb')
+        # pdfreader = PdfFileReader(pdfFile)
 
         if len(args.o) > 0:
             output_directory = os.path.join(args.o, os.path.basename(fname)[:-4])
@@ -48,7 +51,7 @@ for fname in args.filename:
             except OSError as e:
                 raise
 
-        for pageno in range(pdfreader.numPages):
+        for pageno in range(args.p, args.p + pageCount):
             text_filename = 'page_%04d' % pageno
             output_filename = text_filename + '.tiff'
             input_filepage = '%s[%d]' % (pdfFilePath, pageno)
