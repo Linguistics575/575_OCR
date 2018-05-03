@@ -1,4 +1,3 @@
-from PyPDF2 import PdfFileReader
 import os
 import sys
 import argparse
@@ -20,12 +19,14 @@ for fname in args.filename:
 
     if len(args.o) > 0:
         if not os.path.exists(args.o):
-            sys.stderr.write('ERROR: Directory "%s" does not exist' % args.o)
+            sys.stderr.write('ERROR: Directory "%s" does not exist\n' % args.o)
+            sys.stderr.flush()
             raise OSError
 
     if len(args.d) > 0:
         if not os.path.exists(args.d):
-            sys.stderr.write('ERROR: Directory "%s" does not exist' % args.d)
+            sys.stderr.write('ERROR: Directory "%s" does not exist\n' % args.d)
+            sys.stderr.flush()
             raise OSError
 
     if fname[-4:].lower() == '.pdf':
@@ -58,8 +59,8 @@ for fname in args.filename:
 
             output_filepath = os.path.join(output_directory, output_filename)
             os.system(convert_cmd % (args.r,
-                                     input_filepage.replace(' ', '\\ '),
-                                     output_filepath.replace(' ', '\\ ')))
+                                     input_filepage.replace(' ', '\\ ').replace('-','\\-'),
+                                     output_filepath.replace(' ', '\\ ').replace('-','\\-')))
 
             text_filepath = os.path.join(output_directory, text_filename)
             os.system('tesseract %s -l eng %s' % (output_filepath.replace(' ', '\\ '),
