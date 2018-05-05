@@ -12,6 +12,8 @@ import yaml
 
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+
+from nltk.tokenize.moses import MosesDetokenizer
 from os import mkdir, path
 from sys import stderr
 
@@ -102,13 +104,25 @@ class Recognizer():
             parameter that takes str values of 'true' or 'false' to be passed
             to API indicating whether to do handwriting recognition ('true')
             or OCR ('false')
+        keep_tokenization : boolean (Default True)
+            Azure provides tokenized output.  By default this output is
+            detokenized using the Moses detokenizer. When keep_tokenization is
+            True, the tokenization of the output will be preserved
     '''
-    def __init__(self, config_file, handwriting_param):
+    def __init__(self, config_file, handwriting_param, keep_tokenization):
 
         assert (handwriting_param == 'true' or handwriting_param == 'false')
 
         self.config_file = config_file
         self.handwriting_param = handwriting_param
+        self.keep_tokenization = keep_tokenization
+
+        # if we are not keeping the tokenization, we'll need an instance of the
+        # detokenizer, and let's alias the detokenize function as well
+        if not keep_tokenization:
+            self.detokenizer = MosesDetokenizer()
+            self.detokenize = self.detokenizer.detokenize
+
         self._request_params = {'handwriting': handwriting_param}
         self.parse_config_file()
 
@@ -206,9 +220,15 @@ class Recognizer():
         return a list of lines from the result json with we're doing
         handwriting.
         '''
-        return [line['text']
-                for line
-                in result['recognitionResult']['lines']]
+        lines = [line['text']
+                 for line
+                 in result['recognitionResult']['lines']]
+
+        if self.keep_tokenization:
+            return lines
+        else:
+            return [" ".join(self.detokenize(line.split()))
+                    for line in lines]
 
     def extract_ocr_text_from_json(self, result):
         '''
@@ -220,7 +240,10 @@ class Recognizer():
             for line in region['lines']:
                 words = [word['text'] for word in line['words']]
 
-                output_lines.append(" ".join(words))
+                if self.keep_tokenization:
+                    output_lines.append(" ".join(words))
+                else:
+                    output_lines.append(" ".join(self.detokenize(words)))
 
         return output_lines
 
@@ -437,12 +460,20 @@ def main():
                         help='Do OCR on typewritten text instead of '
                              'recognizing handwritten text. (Default is to '
                              'recognize handwritten text')
+    parser.add_argument('-k', '--keep_tokenization', action='store_true',
+                        default=False,
+                        help='Azure provides tokenized output.  By default, '
+                             'this output is detokenized using the Moses '
+                             'detokenizer. Passing this flag will preserve '
+                             'the tokenization of the output.')
     args = parser.parse_args()
 
     # set up recognizer for either OCR or handwritting recognition with
     # parameters from config file
     handwriting_param = 'false' if args.ocr else 'true'
-    recognizer = Recognizer(args.config_file, handwriting_param)
+    recognizer = Recognizer(args.config_file,
+                            handwriting_param,
+                            args.keep_tokenization)
 
     if args.input_image:
         # process a single image
