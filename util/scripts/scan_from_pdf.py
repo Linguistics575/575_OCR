@@ -85,12 +85,11 @@ for fname in args.filename:
 
             if not os.path.exists(output_filepath):
                 print('ERROR : Could not create image file "%s"' % output_filepath)
-                break
-
-            text_filepath = os.path.join(document_output_directory, text_filename)
-            if args.g:
-                print('tesseract %s -l eng %s' % (output_filepath.replace(' ', '\\ '),
+            else:
+                text_filepath = os.path.join(document_output_directory, text_filename)
+                if args.g:
+                    print('tesseract %s -l eng %s' % (output_filepath.replace(' ', '\\ '),
                                                   text_filepath.replace(' ', '\\ ')))
-            os.system('tesseract %s -l eng %s' % (output_filepath.replace(' ', '\\ '),
+                os.system('tesseract %s -l eng %s' % (output_filepath.replace(' ', '\\ '),
                                                   text_filepath.replace(' ', '\\ ')))
-            os.remove(output_filepath)
+                os.remove(output_filepath)
