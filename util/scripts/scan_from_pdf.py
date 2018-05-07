@@ -50,8 +50,13 @@ def file_base_name(pdfFilePath):
 outputDirectory = confirm_directory_exists(args.o)
 inputDirectory = confirm_directory_exists(args.d)
 
-for fname in args.filename:
-    if fname[-4:].lower() == '.pdf':
+if len(args.filename) == 1 and args.filename[0] == '*':
+    fileList = os.listdir(inputDirectory)
+else:
+    fileList = args.filename
+
+for fname in fileList:
+    if fname.lower().endswith('pdf'):
         pdfFilePath = os.path.join(inputDirectory, fname)
         pdfFileBaseName = os.path.basename(pdfFilePath)[:-4]
 
@@ -65,8 +70,15 @@ for fname in args.filename:
         document_output_directory = os.path.join(outputDirectory, pdfFileBaseName)
         create_directory_if_not_exists(document_output_directory)
 
+        logFile = open(os.path.join(document_output_directory, pdfFileBaseName + '.log'), 'w')
+
         pageno = args.p
         fileCanReadImage = True
+
+        logFile.write('COMMAND: scan_from_pdf.py -r %d -d %s -o %s -p %d %s\n' % (args.r, args.d, args.o, args.p, ' '.join(map(str, args.filename))))
+        logFile.write('Reading %d pages from "%s"\n' % (pageCount, pdfFileBaseName))
+        logFile.write('    resolution %d dpi\n' % args.r)
+        logFile.write('    page numbering starts at %d\n' % args.p)
         while pageno in range(args.p, args.p + pageCount) and fileCanReadImage:
             text_filename = 'page_%04d' % pageno
             output_filename = text_filename + '.tiff'
@@ -83,10 +95,14 @@ for fname in args.filename:
                                      output_filepath.replace(' ', '\\ ')))
             except Exception as e:
                 print('Caught Convert Exception: %s' % e)
+                logFile.write('ERROR in convert invocation -- aborting command\n')
+                logFile.close()
                 raise e
 
             if not os.path.exists(output_filepath):
-                print('ERROR : Could not create image file "%s"' % output_filepath)
+                sys.stderr.write('ERROR : Could not create image file "%s"\n' % output_filepath)
+                logFile.write('Could not create image files from "%s"\n    Abandonining text extraction.' % output_filepath)
+                logFile.close()
                 fileCanReadImage = False
                 break
             else:
@@ -97,4 +113,8 @@ for fname in args.filename:
                 os.system('tesseract %s -l eng %s' % (output_filepath.replace(' ', '\\ '),
                                                   text_filepath.replace(' ', '\\ ')))
                 os.remove(output_filepath)
+
+                logFile.write('    page %d\n' % pageno)
                 pageno += 1
+
+        logFile.close()
