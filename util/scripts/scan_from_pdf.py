@@ -85,6 +85,7 @@ for fname in args.filename:
 
             if not os.path.exists(output_filepath):
                 print('ERROR : Could not create image file "%s"' % output_filepath)
+                break
             else:
                 text_filepath = os.path.join(document_output_directory, text_filename)
                 if args.g:
