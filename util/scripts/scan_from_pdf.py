@@ -65,7 +65,9 @@ for fname in args.filename:
         document_output_directory = os.path.join(outputDirectory, pdfFileBaseName)
         create_directory_if_not_exists(document_output_directory)
 
-        for pageno in range(args.p, args.p + pageCount):
+        pageno = args.p
+        fileCanReadImage = True
+        while pageno in range(args.p, args.p + pageCount) and fileCanReadImage:
             text_filename = 'page_%04d' % pageno
             output_filename = text_filename + '.tiff'
             input_filepage = '%s[%d]' % (pdfFilePath, pageno)
@@ -85,6 +87,7 @@ for fname in args.filename:
 
             if not os.path.exists(output_filepath):
                 print('ERROR : Could not create image file "%s"' % output_filepath)
+                fileCanReadImage = False
                 break
             else:
                 text_filepath = os.path.join(document_output_directory, text_filename)
@@ -94,3 +97,4 @@ for fname in args.filename:
                 os.system('tesseract %s -l eng %s' % (output_filepath.replace(' ', '\\ '),
                                                   text_filepath.replace(' ', '\\ ')))
                 os.remove(output_filepath)
+                pageno += 1
