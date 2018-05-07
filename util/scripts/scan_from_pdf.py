@@ -1,4 +1,3 @@
-from PyPDF2 import PdfFileReader
 import os
 import sys
 import argparse
@@ -11,6 +10,7 @@ argparser.add_argument('-r', type=int, default=600, help='Image resolution (at l
 argparser.add_argument('-d', type=str, default='', help='Directory containing input PDF files')
 argparser.add_argument('-o', type=str, default='', help='Directory containing Output collections of text files')
 argparser.add_argument('-p', type=int, default=0, help='Start page number (default is 0)')
+argparser.add_argument('-g', action='store_true', default=False)
 
 args = argparser.parse_args()
 convert_cmd = 'convert -density %d %s -strip -background white -alpha off %s'
@@ -20,12 +20,14 @@ for fname in args.filename:
 
     if len(args.o) > 0:
         if not os.path.exists(args.o):
-            sys.stderr.write('ERROR: Directory "%s" does not exist' % args.o)
+            sys.stderr.write('ERROR: Directory "%s" does not exist\n' % args.o)
+            sys.stderr.flush()
             raise OSError
 
     if len(args.d) > 0:
         if not os.path.exists(args.d):
-            sys.stderr.write('ERROR: Directory "%s" does not exist' % args.d)
+            sys.stderr.write('ERROR: Directory "%s" does not exist\n' % args.d)
+            sys.stderr.flush()
             raise OSError
 
     if fname[-4:].lower() == '.pdf':
@@ -35,10 +37,16 @@ for fname in args.filename:
         else:
             pdfFilePath = fname
 
+        if not os.path.exists(pdfFilePath):
+            sys.stderr.write('ERROR: File "%s" does not exist\n' % pdfFilePath)
+            break
+
         pdf_page_count_cmd = page_count_cmd % pdfFilePath
+        if args.g:
+            print ('calling %s' % pdf_page_count_cmd)
         pageCount = int(os.popen(pdf_page_count_cmd).read().strip())
-        # pdfFile = open(pdfFilePath, 'rb')
-        # pdfreader = PdfFileReader(pdfFile)
+        if args.g:
+            print ('generating %d image files' % pageCount)
 
         if len(args.o) > 0:
             output_directory = os.path.join(args.o, os.path.basename(fname)[:-4])
@@ -57,11 +65,26 @@ for fname in args.filename:
             input_filepage = '%s[%d]' % (pdfFilePath, pageno)
 
             output_filepath = os.path.join(output_directory, output_filename)
-            os.system(convert_cmd % (args.r,
+            if args.g:
+                print(convert_cmd % (args.r,
                                      input_filepage.replace(' ', '\\ '),
                                      output_filepath.replace(' ', '\\ ')))
+            try :
+                os.system(convert_cmd % (args.r,
+                                     input_filepage.replace(' ', '\\ '),
+                                     output_filepath.replace(' ', '\\ ')))
+            except Excption as e:
+                print('Caught Convert Exception: %s' % e)
+                raise e
+
+            if not os.path.exists(output_filepath):
+                print('ERROR : Could not create image file "%s"' % output_filepath)
+                break
 
             text_filepath = os.path.join(output_directory, text_filename)
+            if args.g:
+                print('tesseract %s -l eng %s' % (output_filepath.replace(' ', '\\ '),
+                                                  text_filepath.replace(' ', '\\ ')))
             os.system('tesseract %s -l eng %s' % (output_filepath.replace(' ', '\\ '),
                                                   text_filepath.replace(' ', '\\ ')))
             os.remove(output_filepath)
