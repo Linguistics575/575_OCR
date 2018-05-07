@@ -16,55 +16,61 @@ args = argparser.parse_args()
 convert_cmd = 'convert -density %d %s -strip -background white -alpha off %s'
 page_count_cmd = "pdfinfo %s | grep 'Pages' | awk '{print $2}'"
 
-for fname in args.filename:
-
-    if len(args.o) > 0:
-        if not os.path.exists(args.o):
-            sys.stderr.write('ERROR: Directory "%s" does not exist\n' % args.o)
-            sys.stderr.flush()
-            raise OSError
-
-    if len(args.d) > 0:
-        if not os.path.exists(args.d):
-            sys.stderr.write('ERROR: Directory "%s" does not exist\n' % args.d)
-            sys.stderr.flush()
-            raise OSError
-
-    if fname[-4:].lower() == '.pdf':
-
-        if len(args.d) > 0:
-            pdfFilePath = os.path.join(args.d, fname)
+def confirm_directory_exists(dir):
+    if len(dir) > 0:
+        if not os.path.exists(dir):
+            sys.stderr.write('ERROR: Directory "%s" does not exist\n' % dir)
+            raise FileNotFoundError
         else:
-            pdfFilePath = fname
+            return dir
+    else:
+        return ''
 
-        if not os.path.exists(pdfFilePath):
-            sys.stderr.write('ERROR: File "%s" does not exist\n' % pdfFilePath)
+def create_directory_if_not_exists(dir):
+    if not os.path.exists(dir):
+        try:
+            os.makedirs(dir)
+        except OSError as e:
+            raise
+
+def confirm_file_exists(filepath):
+    if not os.path.exists(filepath):
+        sys.stderr.write('ERROR: File "%s" does not exist\n' % filepath)
+        return False
+    return True
+
+def count_pages():
+    pdf_page_count_cmd = page_count_cmd % pdfFilePath
+    return int(os.popen(pdf_page_count_cmd).read().strip())
+
+def file_base_name(pdfFilePath):
+    return os.path.basename(pdfFilePath)[:-4]
+
+
+outputDirectory = confirm_directory_exists(args.o)
+inputDirectory = confirm_directory_exists(args.d)
+
+for fname in args.filename:
+    if fname[-4:].lower() == '.pdf':
+        pdfFilePath = os.path.join(inputDirectory, fname)
+        pdfFileBaseName = os.path.basename(pdfFilePath)[:-4]
+
+        if not confirm_file_exists(pdfFilePath):
             break
 
-        pdf_page_count_cmd = page_count_cmd % pdfFilePath
-        if args.g:
-            print ('calling %s' % pdf_page_count_cmd)
-        pageCount = int(os.popen(pdf_page_count_cmd).read().strip())
+        pageCount = count_pages()
         if args.g:
             print ('generating %d image files' % pageCount)
 
-        if len(args.o) > 0:
-            output_directory = os.path.join(args.o, os.path.basename(fname)[:-4])
-        else:
-            output_directory = fname[:-4]
-
-        if not os.path.exists(output_directory):
-            try:
-                os.makedirs(output_directory)
-            except OSError as e:
-                raise
+        document_output_directory = os.path.join(outputDirectory, pdfFileBaseName)
+        create_directory_if_not_exists(document_output_directory)
 
         for pageno in range(args.p, args.p + pageCount):
             text_filename = 'page_%04d' % pageno
             output_filename = text_filename + '.tiff'
             input_filepage = '%s[%d]' % (pdfFilePath, pageno)
 
-            output_filepath = os.path.join(output_directory, output_filename)
+            output_filepath = os.path.join(document_output_directory, output_filename)
             if args.g:
                 print(convert_cmd % (args.r,
                                      input_filepage.replace(' ', '\\ '),
@@ -73,7 +79,7 @@ for fname in args.filename:
                 os.system(convert_cmd % (args.r,
                                      input_filepage.replace(' ', '\\ '),
                                      output_filepath.replace(' ', '\\ ')))
-            except Excption as e:
+            except Exception as e:
                 print('Caught Convert Exception: %s' % e)
                 raise e
 
@@ -81,7 +87,7 @@ for fname in args.filename:
                 print('ERROR : Could not create image file "%s"' % output_filepath)
                 break
 
-            text_filepath = os.path.join(output_directory, text_filename)
+            text_filepath = os.path.join(document_output_directory, text_filename)
             if args.g:
                 print('tesseract %s -l eng %s' % (output_filepath.replace(' ', '\\ '),
                                                   text_filepath.replace(' ', '\\ ')))
