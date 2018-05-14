@@ -16,6 +16,10 @@ args = argparser.parse_args()
 convert_cmd = 'convert -density %d %s -strip -background white -alpha off %s'
 page_count_cmd = "pdfinfo %s | grep 'Pages' | awk '{print $2}'"
 
+if args.g:
+    print('Received request for scanning:')
+    print('COMMAND: scan_from_pdf.py -r %d -d %s -o %s -p %d %s\n' % (args.r, args.d, args.o, args.p, ' '.join(map(str, args.filename))))
+
 def confirm_directory_exists(dir):
     if len(dir) > 0:
         if not os.path.exists(dir):
@@ -39,21 +43,36 @@ def confirm_file_exists(filepath):
         return False
     return True
 
-def count_pages():
+def count_pages(pdfFilePath):
     pdf_page_count_cmd = page_count_cmd % pdfFilePath
-    return int(os.popen(pdf_page_count_cmd).read().strip())
-
-def file_base_name(pdfFilePath):
-    return os.path.basename(pdfFilePath)[:-4]
-
+    try:
+        return int(os.popen(pdf_page_count_cmd).read().strip())
+    except ValueError:
+        sys.stderr.write('Could not read page count')
+        return 0
 
 outputDirectory = confirm_directory_exists(args.o)
 inputDirectory = confirm_directory_exists(args.d)
 
-if len(args.filename) == 1 and args.filename[0] == '*':
+if args.g:
+    if len(inputDirectory) > 0:
+        print('reading from directory "%s"' % inputDirectory)
+    else:
+        print('reading from current directory')
+    if len(outputDirectory) > 0:
+        print('writing to directory "%s"' % outputDirectory)
+    else:
+        print('writing to current directory')
+
+print('len(args.filename) = %d and args.filename[0] = "%s"' % (len(args.filename), args.filename[0]))
+if len(args.filename) == 1 and args.filename[0] == 'all':
+    print('reading all files from %s' % inputDirectory)
     fileList = os.listdir(inputDirectory)
 else:
     fileList = args.filename
+
+if args.g:
+    print('reading files: %s' % ' '.join(map(str, fileList)))
 
 for fname in fileList:
     if fname.lower().endswith('pdf'):
@@ -63,7 +82,7 @@ for fname in fileList:
         if not confirm_file_exists(pdfFilePath):
             break
 
-        pageCount = count_pages()
+        pageCount = count_pages(pdfFilePath)
         if args.g:
             print ('generating %d image files' % pageCount)
 

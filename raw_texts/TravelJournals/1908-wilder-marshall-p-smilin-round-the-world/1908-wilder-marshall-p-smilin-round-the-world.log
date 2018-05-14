@@ -1,0 +1,6 @@
+COMMAND: scan_from_pdf.py -r 800 -d /home2/lindbe2/workspace/ling575/TravelJournals -o /home2/lindbe2/workspace/ling575/scan_text -p 0 all
+Reading 380 pages from "1908-wilder-marshall-p-smilin-round-the-world"
+    resolution 800 dpi
+    page numbering starts at 0
+Could not create image files from "/home2/lindbe2/workspace/ling575/scan_text/1908-wilder-marshall-p-smilin-round-the-world/page_0000.tiff"
+    Abandonining text extraction.
