@@ -1,0 +1,5 @@
+COMMAND: scan_from_pdf.py -r 800 -d /home2/lindbe2/workspace/ling575/HowardCarterNotes -o /home2/lindbe2/workspace/ling575/575_OCR/raw_texts/HowardCarterNotes -p 0 all
+Reading 1 pages from "Carter-i-c-157"
+    resolution 800 dpi
+    page numbering starts at 0
+    page 0
