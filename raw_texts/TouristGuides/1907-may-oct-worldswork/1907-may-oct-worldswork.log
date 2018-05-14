@@ -1,0 +1,6 @@
+COMMAND: scan_from_pdf.py -r 800 -d /home2/lindbe2/workspace/ling575/TouristGuides -o /home2/lindbe2/workspace/ling575/scan_text/TouristGuides -p 0 all
+Reading 698 pages from "1907-may-oct-worldswork"
+    resolution 800 dpi
+    page numbering starts at 0
+Could not create image files from "/home2/lindbe2/workspace/ling575/scan_text/TouristGuides/1907-may-oct-worldswork/page_0000.tiff"
+    Abandonining text extraction.
