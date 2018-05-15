@@ -8,8 +8,11 @@ This script will read in a locally stored image, present it to the Microsoft Azu
 * For OCR, only the `.json` and `.recognized.txt` files are output.
 
 ### Installation Instructions
-
-TODO, but basically get anaconda python distro, install envrionment from requirements file, activate environment
+1.  The easiest way to use this tools is to simply download this repository.  TODO: pointer to downloading the repo.)  Experienced git users may find it more convenient to clone it.
+1. Our tools are written in Python; therefore, you will need to have Python installed on your computer.  For experienced pythonistas, simply setup a python envrionment using the `Azure_Wrapper_Requirements` file for your platform.  For everyone else, read on:  
+   * We recommennd the `Miniconda` python distribution.  It allows you to set up "environments" on your machine, and allows for an easy (as possible) installation procedure.  If you do not already have pythong on your machine, download and install the Python 3.6 version of `Miniconda` for your platform [here](https://conda.io/miniconda.html).  TODO: Walk through installing Miniconda.
+2. Windows users, launch the `Anaconda command prompt` from the start menu, or, if you added anaconda to your path in step 2 above, simply start a windows command line.  *nix users can simply start a terminal session.  Navigate to the `azure` directory, and on the command line, type `conda create --name azure --file azure_wrapepr_requirements_windows.txt` if you are on a windows machine, or `conda create --name azure --file azure_wrapper_requirements_nix.txt` otherwise.  
+3. You should see several messages (TODO: EXAMPLES HERE), as conda installs the various packages needed to run our code.  Once that has finished, type `conda activate azure` at the command line.  This "activates" the azure python environment, with all of the necessary packages.  You are now ready to submit an image containing handwritten text to the Azure recognizer as in the [Usage](###usage) section below.
 
 ### Pre-requisities:
 1.  You'll need a subscription key for the "Computer Vision API" key from Microsoft.  At the time of this writing, there is a free version that will get you 5000 transactions per month and allow you a transaction rate of 20 transactions per minute.  There is a paid version for $2.50 per 1000 transactions with a transaction rate of 10 transactions per second.  Obtain the subscription key [here](https://docs.microsoft.com/en-us/azure/cognitive-services/computer-vision/vision-api-how-to-topics/howtosubscribe), and note the URL for your region. 
