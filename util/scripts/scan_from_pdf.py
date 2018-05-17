@@ -5,20 +5,24 @@ import argparse
 
 
 argparser = argparse.ArgumentParser(description = 'Scan PDF images and place pages into directory')
-argparser.add_argument('filename', metavar='PDF', nargs='+', help='PDF File')
+argparser.add_argument('-f', metavar='PDF', nargs='+', help='PDF Filenames')
 argparser.add_argument('-r', type=int, default=600, help='Image resolution (at least 100, 600+ recommended)')
-argparser.add_argument('-d', type=str, default='', help='Directory containing input PDF files')
-argparser.add_argument('-o', type=str, default='', help='Directory containing Output collections of text files')
+argparser.add_argument('-l', type=str, default='eng', help='Language being scanned')
+argparser.add_argument('-i', type=str, default='', help='Input Directory containing input PDF files')
+argparser.add_argument('-o', type=str, default='', help='Output Directory for collections of text files')
 argparser.add_argument('-p', type=int, default=0, help='Start page number (default is 0)')
-argparser.add_argument('-g', action='store_true', default=False)
+argparser.add_argument('-d', action='store_true', default=False, help="Turn on Debug messages")
 
 args = argparser.parse_args()
 convert_cmd = 'convert -density %d %s -strip -background white -alpha off %s'
 page_count_cmd = "pdfinfo %s | grep 'Pages' | awk '{print $2}'"
 
-if args.g:
+if args.d:
     print('Received request for scanning:')
-    print('COMMAND: scan_from_pdf.py -r %d -d %s -o %s -p %d %s\n' % (args.r, args.d, args.o, args.p, ' '.join(map(str, args.filename))))
+    if args.f:
+        print('COMMAND: scan_from_pdf.py -r %d -i %s -o %s -p %d -f %s\n' % (args.r, args.i, args.o, args.p, ' '.join(map(str, args.f))))
+    else:
+        print('COMMAND: scan_from_pdf.py -r %d -i %s -o %s -p %d\n' % (args.r, args.i, args.o, args.p))
 
 def confirm_directory_exists(dir):
     if len(dir) > 0:
@@ -52,9 +56,9 @@ def count_pages(pdfFilePath):
         return 0
 
 outputDirectory = confirm_directory_exists(args.o)
-inputDirectory = confirm_directory_exists(args.d)
+inputDirectory = confirm_directory_exists(args.i)
 
-if args.g:
+if args.d:
     if len(inputDirectory) > 0:
         print('reading from directory "%s"' % inputDirectory)
     else:
@@ -64,14 +68,13 @@ if args.g:
     else:
         print('writing to current directory')
 
-print('len(args.filename) = %d and args.filename[0] = "%s"' % (len(args.filename), args.filename[0]))
-if len(args.filename) == 1 and args.filename[0] == 'all':
+if not args.f:
     print('reading all files from %s' % inputDirectory)
     fileList = os.listdir(inputDirectory)
 else:
-    fileList = args.filename
+    fileList = args.f
 
-if args.g:
+if args.d:
     print('reading files: %s' % ' '.join(map(str, fileList)))
 
 for fname in fileList:
@@ -83,7 +86,7 @@ for fname in fileList:
             break
 
         pageCount = count_pages(pdfFilePath)
-        if args.g:
+        if args.d:
             print ('generating %d image files' % pageCount)
 
         document_output_directory = os.path.join(outputDirectory, pdfFileBaseName)
@@ -94,7 +97,7 @@ for fname in fileList:
         pageno = args.p
         fileCanReadImage = True
 
-        logFile.write('COMMAND: scan_from_pdf.py -r %d -d %s -o %s -p %d %s\n' % (args.r, args.d, args.o, args.p, ' '.join(map(str, args.filename))))
+        logFile.write('COMMAND: scan_from_pdf.py -r %d -i %s -o %s -p %d -f %s\n' % (args.r, args.i, args.o, args.p, fname))
         logFile.write('Reading %d pages from "%s"\n' % (pageCount, pdfFileBaseName))
         logFile.write('    resolution %d dpi\n' % args.r)
         logFile.write('    page numbering starts at %d\n' % args.p)
@@ -104,7 +107,7 @@ for fname in fileList:
             input_filepage = '%s[%d]' % (pdfFilePath, pageno)
 
             output_filepath = os.path.join(document_output_directory, output_filename)
-            if args.g:
+            if args.d:
                 print(convert_cmd % (args.r,
                                      input_filepage.replace(' ', '\\ '),
                                      output_filepath.replace(' ', '\\ ')))
@@ -126,10 +129,12 @@ for fname in fileList:
                 break
             else:
                 text_filepath = os.path.join(document_output_directory, text_filename)
-                if args.g:
-                    print('tesseract %s -l eng %s' % (output_filepath.replace(' ', '\\ '),
+                if args.d:
+                    print('tesseract %s -l %s %s' % (output_filepath.replace(' ', '\\ '),
+						  args.l,
                                                   text_filepath.replace(' ', '\\ ')))
-                os.system('tesseract %s -l eng %s' % (output_filepath.replace(' ', '\\ '),
+                os.system('tesseract %s -l %s %s' % (output_filepath.replace(' ', '\\ '),
+                                                  args.l,
                                                   text_filepath.replace(' ', '\\ ')))
                 os.remove(output_filepath)
 
