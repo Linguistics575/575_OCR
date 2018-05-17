@@ -32,5 +32,66 @@ All command line arguments are optional:
        If this is specified, then debugging messages are written to the screen, tracking the operations.
 
 ## Running the Script From Condor
+### The Condor Command File
+Since scanning a 500-page document could possibly take as much as four hours to complete, it is best to run the scanning utility on Condor so that it runs in the background. This cuts down on overuse of the server and lets you do other work while the scan is taking place. 
+
+In the directory, you can see a sample SCAN_ALL.cmd file. This provides the instructions to Condor to let it know what to do. To scan the documents you are interseted in, you need to modify the "arguments" setting in the file. An example looks like this:
+
+---
+arguments	= "-i sample -o tmp -r 800 -f sample_journal.pdf"
+---
+
+This will read the file in "sample/sample_journal.pdf" and output the results to the directory "tmp/sample_journal", creating the sample_journal directory if necessary. To read your files, change the Input directory (-i value) and Files (-f values). For example, to read the files "file1.pdf" and "file2.pdf" from a directory called "myRepsitory" on your account, the arguments would look something like this:
+
+---
+arguments	= "-i /home/myAccount/myRepository -o /home/myAccount/myScannedFiles -r 800 -f file1.pdf file2.pdf"
+---
+
+If you want to read all of the PDF files in one directory, set the -i value to that directory, and leave out the -f value, like this:
+
+---
+arguments      = "-i /home/myAccount/myRepository -o/home/myAccount/myScannedFiles -r 800"
+---
+
+### Running the Condor Process
+Once you have set the arguments as you want them, type the command:
+
+    $ condor_submit SCAN_ALL.cmd
+
+This will start the process in the background.
+
+To see the status of the process, type the command:
+
+    $ condor_q
+
+and look for your account ID in the list of processes. The entry should look something like this:
+
+---
+OWNER    BATCH_NAME      SUBMITTED   DONE   RUN    IDLE   HOLD  TOTAL JOB_IDS
+. . .
+lindbe2  CMD: scan_al   5/17 11:21      _      1      _      _      1 103814.0
+---
+
+You will usually see a "1" under "IDLE" early on. To make sure it is working correctly, it is a good idea to wait until the condor_q command shows this under "RUN", telling you the process has started.
+
+If the process ends early, the errors will be listed in the file "scan.err".
+
 
 ## Issues
+### Tesseract Warning Messages
+Some warnings will be reported by the scanner ("Tesseract") which are ignorable, but unfortunately cannot be prevented from being written to the scan.err file. These can look something like this:
+
+---
+Warning in pixReadFromTiffStream: bpp = 48; stripping 16 bit rgb samples down to
+ 8
+Page 1
+Warning in pixReadMemTiff: tiff page 1 not found
+---
+
+### ImageMagick GhostScript incompatibilities
+Due to some issues with the image extraction code, which calls the ImageMagick application, and the current version of GhostScript on Patas, some PDF files cannot be read on Patas. If this happens, the error will be reported in the log file in the document output directory.
+
+---
+Could not create image files from "tmp/sample_journal/page_0000.tiff"
+    Abandonining text extraction.
+---
