@@ -384,7 +384,8 @@ class Recognizer():
             return (None, None, None)
 
 
-def process_image_file(image_file, recognizer, output_directory):
+def process_image_file(image_file, recognizer, output_directory,
+                       output_json=False):
     '''
     read in a file and process it, calling the API
 
@@ -394,6 +395,9 @@ def process_image_file(image_file, recognizer, output_directory):
             path to image file
         recognizer : Recognizer
         output_directory : str
+        output_json : boolean (default False)
+            output json file with recognition results and bounding box
+            locations when True
     '''
 
     # read in the image data as bytes
@@ -425,10 +429,11 @@ def process_image_file(image_file, recognizer, output_directory):
             output_image_plt.savefig(output_image_file, bbox_inches='tight')
             print("output", output_image_file, file=stderr, flush=True)
 
-        # the json could be handy for debugging, so we hang onto it
-        with open(output_json_file, "w") as f:
-            json.dump(result_json, f)
-        print("output", output_json_file, file=stderr, flush=True)
+        # output the json if we were asked to
+        if output_json:
+            with open(output_json_file, "w") as f:
+                json.dump(result_json, f)
+            print("output", output_json_file, file=stderr, flush=True)
 
         # and finally the text output
         with open(output_text_file, "w") as f:
@@ -466,6 +471,10 @@ def main():
                              'this output is detokenized using the Moses '
                              'detokenizer. Passing this flag will preserve '
                              'the tokenization of the output.')
+    parser.add_argument('-j', '--json', action='store_true',
+                        default=False,
+                        help='Output json file with recognition results and '
+                             'bounding boxes.  May be useful for debugging.')
     args = parser.parse_args()
 
     # set up recognizer for either OCR or handwritting recognition with
@@ -479,7 +488,8 @@ def main():
         # process a single image
         process_image_file(args.input_image,
                            recognizer,
-                           args.output_directory)
+                           args.output_directory,
+                           args.json)
     else:
         # we have a file of paths to work with; process a batch
         with open(args.file_of_input_paths) as f:
@@ -489,7 +499,8 @@ def main():
                     try:
                         process_image_file(line,
                                            recognizer,
-                                           args.output_directory)
+                                           args.output_directory,
+                                           args.json)
                     except FileNotFoundError as e:
                         print(e, file=stderr)
 
