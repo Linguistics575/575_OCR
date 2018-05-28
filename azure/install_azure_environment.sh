@@ -1,9 +1,12 @@
 #!/bin/bash
+# Script to setup virtual environment for Azure Handwriting Recognition Tools
+# Author: James V. Bruno
+# Date: 5/27/2018
+
 # make sure we have a good python 3 interpreter
-# first we see if we have just 'python'
+# first we see if we have it with just 'python'
 if pyversion=$(python --version 2>&1); then
     if [[ $pyversion = "Python 3"* ]]; then
-            echo $pyversion
             echo "Found Python 3 interpeter with python command"
             pycmd=python
     else
