@@ -1,5 +1,0 @@
-# Config file for Handwriting recognition
-url: https://eastus.api.cognitive.microsoft.com/vision/v1.0/RecognizeText
-key_file: /home/jbruno/Documents/UW/575-egypt/our-repo/key_file.key
-max_num_retries: 25
-
