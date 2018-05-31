@@ -22,3 +22,7 @@ At present, this repository contains resources in 2 directories:
     29 April, 2:00 PM PDT : checked in Jupyter Notebook with slider to tune in binarization parameters
     05 May, 12:00 PM PDT : Azure wrapper now detokenizes the output.  Refinements to image processing
                            notebook.
+    27 May, 2:40 PM PDT : Completely overhauled Azure environment and installation instructions so that a
+                          conda-based installation is not assumed.  Checked in a .bat file and a .sh file
+                          to automate the setup of the environment on *nix and windows machines.
+                          
