@@ -18,7 +18,7 @@
 #   -d          Turn on debug messages
 #------------------------------------------------------------------------
 universe	= vanilla
-executable 	= scan_all.sh
+executable 	= batch_scan_pdf.sh
 getenv		= true
 output		= scan.out
 error		= scan.err
