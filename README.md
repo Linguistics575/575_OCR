@@ -1,8 +1,9 @@
 # 575_OCR
-holds work for 575_OCR project.
-At present, this repository contains resources in 2 directories:
-- `azure/`: contains a script to run an image through the MS Azure Handwriting Recognition API and related resources.  (See readme there)
-- `evaluation/`: contains a script to calculate Word-Error-Rate and various experiments and evaluations.
+holds *ONLY OUTPUT DATA* from the _Unlocking Text from its Image_ project.
+For code and tools, please see [our main repository](https://github.com/Linguistics575/unlocking-text-main)
+
+
+TODO: Eric, would you like to provide some sort of catalog of what's here?
 ---
     7 April, 2:25 PM PDT: Added Python utility files for PDFs. Added one sample PDF and extracted text. (Other PDFs and output will be placed in dropbox, since they get rather large.)
 
@@ -25,4 +26,3 @@ At present, this repository contains resources in 2 directories:
     27 May, 2:40 PM PDT : Completely overhauled Azure environment and installation instructions so that a
                           conda-based installation is not assumed.  Checked in a .bat file and a .sh file
                           to automate the setup of the environment on *nix and windows machines.
-                          
