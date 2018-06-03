@@ -4,6 +4,7 @@ For code and tools, please see [our main repository](https://github.com/Linguist
 
 ## Catalog:
 * `evaluation\IAM-evaluation-sample\`: Contains evaluation sample and results from an evaluation of the MS Azure Handwriting recognizer carried out on a sample of 100 documents from [the IAM Handwriting Database](http://www.fki.inf.unibe.ch/databases/iam-handwriting-database).  This is the sample that shows that the WER of the Azure tool is 13.64% on a laboratory-curated dataset.
+* `\evaluation\line-height-experiment`: Contains experimental materials and results that demonstrate the effect of line-height on Handwriting Recognition Performance, pencil vs. ink, and binarization.
 * TODO: Eric, would you like to add entries to catalog your output files?
 
 ---
