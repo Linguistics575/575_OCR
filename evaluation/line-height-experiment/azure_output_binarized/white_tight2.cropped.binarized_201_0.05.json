@@ -1,0 +1,1 @@
+{"status": "Succeeded", "recognitionResult": {"lines": [{"boundingBox": [98, 48, 468, 53, 467, 117, 97, 111], "text": "Now", "words": [{"boundingBox": [312, 52, 485, 54, 441, 118, 268, 115], "text": "Now"}]}, {"boundingBox": [852, 342, 1097, 334, 1099, 401, 854, 409], "text": "code", "words": [{"boundingBox": [845, 341, 1093, 337, 1094, 403, 846, 407], "text": "code"}]}]}}

@@ -1,0 +1,16 @@
+/home/jbruno/ln_575/data/LFH_test_images/initial_evaluation_probe_1913/text_files/IMG_8849_cropped_2.gold.txt	azure_output_binarized/10mm_ink.cropped.binarized_201_0.08.recognized.txt
+/home/jbruno/ln_575/data/LFH_test_images/initial_evaluation_probe_1913/text_files/IMG_8849_cropped_2.gold.txt	azure_output_binarized/10mm_pencil.cropped.binarized_199_0.09.recognized.txt
+/home/jbruno/ln_575/data/LFH_test_images/initial_evaluation_probe_1913/text_files/IMG_8849_cropped_2.gold.txt	azure_output_binarized/6mm_ink.cropped.binarized_139_0.1.recognized.txt
+/home/jbruno/ln_575/data/LFH_test_images/initial_evaluation_probe_1913/text_files/IMG_8849_cropped_2.gold.txt	azure_output_binarized/6mm_pencil.cropped.binarized_151_0.07.recognized.txt
+/home/jbruno/ln_575/data/LFH_test_images/initial_evaluation_probe_1913/text_files/IMG_8849_cropped_2.gold.txt	azure_output_binarized/7mm_ink.cropped.binarized_129_0.1.recognized.txt
+/home/jbruno/ln_575/data/LFH_test_images/initial_evaluation_probe_1913/text_files/IMG_8849_cropped_2.gold.txt	azure_output_binarized/7mm_pencil.cropped.binarized_151_0.09.recognized.txt
+/home/jbruno/ln_575/data/LFH_test_images/initial_evaluation_probe_1913/text_files/IMG_8849_cropped_2.gold.txt	azure_output_binarized/8mm_ink.cropped.binarized_151_0.09.recognized.txt
+/home/jbruno/ln_575/data/LFH_test_images/initial_evaluation_probe_1913/text_files/IMG_8849_cropped_2.gold.txt	azure_output_binarized/8mm_pencil.cropped.binarized_181_0.08.recognized.txt
+/home/jbruno/ln_575/data/LFH_test_images/initial_evaluation_probe_1913/text_files/IMG_8849_cropped_2.gold.txt	azure_output_cropped/10mm_ink.cropped.recognized.txt
+/home/jbruno/ln_575/data/LFH_test_images/initial_evaluation_probe_1913/text_files/IMG_8849_cropped_2.gold.txt	azure_output_cropped/10mm_pencil.cropped.recognized.txt
+/home/jbruno/ln_575/data/LFH_test_images/initial_evaluation_probe_1913/text_files/IMG_8849_cropped_2.gold.txt	azure_output_cropped/6mm_ink.cropped.recognized.txt
+/home/jbruno/ln_575/data/LFH_test_images/initial_evaluation_probe_1913/text_files/IMG_8849_cropped_2.gold.txt	azure_output_cropped/6mm_pencil.cropped.recognized.txt
+/home/jbruno/ln_575/data/LFH_test_images/initial_evaluation_probe_1913/text_files/IMG_8849_cropped_2.gold.txt	azure_output_cropped/7mm_ink.cropped.recognized.txt
+/home/jbruno/ln_575/data/LFH_test_images/initial_evaluation_probe_1913/text_files/IMG_8849_cropped_2.gold.txt	azure_output_cropped/7mm_pencil.cropped.recognized.txt
+/home/jbruno/ln_575/data/LFH_test_images/initial_evaluation_probe_1913/text_files/IMG_8849_cropped_2.gold.txt	azure_output_cropped/8mm_ink.cropped.recognized.txt
+/home/jbruno/ln_575/data/LFH_test_images/initial_evaluation_probe_1913/text_files/IMG_8849_cropped_2.gold.txt	azure_output_cropped/8mm_pencil.cropped.recognized.txt
