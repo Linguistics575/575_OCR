@@ -2,9 +2,13 @@
 holds *ONLY OUTPUT DATA* from the _Unlocking Text from its Image_ project.
 For code and tools, please see [our main repository](https://github.com/Linguistics575/unlocking-text-main)
 
+## Catalog:
+* `evaluation\IAM-evaluation-sample\`: Contains evaluation sample and results from an evaluation of the MS Azure Handwriting recognizer carried out on a sample of 100 documents from [the IAM Handwriting Database](http://www.fki.inf.unibe.ch/databases/iam-handwriting-database).  This is the sample that shows that the WER of the Azure tool is 13.64% on a laboratory-curated dataset.
+* TODO: Eric, would you like to add entries to catalog your output files?
 
-TODO: Eric, would you like to provide some sort of catalog of what's here?
 ---
+The following change log mostly refers to code that has been moved to [our main repository](https://github.com/Linguistics575/unlocking-text-main), but it remains here for recordkeeping purposes.
+
     7 April, 2:25 PM PDT: Added Python utility files for PDFs. Added one sample PDF and extracted text. (Other PDFs and output will be placed in dropbox, since they get rather large.)
 
     10 April, 7:25 PM PDT: Checked in WER script that now accurately calculates WER.
