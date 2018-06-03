@@ -9,8 +9,8 @@
 
 3. Ran the images through the Azure API and capured the output.  The output is in the `sample_output`.
 
-4. Calculated WER for the sample [script](https://github.com/Linguistics575/unlocking-text-main/tree/master/evaluation/WER)]
+4. Calculated WER for the sample [script](https://github.com/Linguistics575/unlocking-text-main/tree/master/evaluation/WER)
 
 5. *The WER was 13.64% !!!!*
 
-### Full evaluation results in `evaluation_results.txt`
+### Full evaluation results in [evaluation_results.txt](https://github.com/Linguistics575/575_OCR/blob/master/evaluation/IAM-evaluation-sample/evaluation_results.txt)
