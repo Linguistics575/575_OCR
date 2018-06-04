@@ -23,6 +23,6 @@ getenv		= true
 output		= scan.out
 error		= scan.err
 log		= scan.log
-arguments	= "~/Workspace/ling575/1846-romer-pilgrimage-to-temples-tombs-v1 ~/Workspace/ling575/575_OCR/raw_texts/1846-romer-pilgrimage-to-temples-tombs-v1"
+arguments	= "/home2/lindbe2/workspace/ling575/1846-romer-pilgrimage-to-temples-tombs-v1 /home2/lindbe2/workspace/ling575/575_OCR/raw_texts/1846-romer-pilgrimage-to-temples-tombs-v1"
 transfer_executable = false
 queue
