@@ -5,7 +5,7 @@ For code and tools, please see [our main repository](https://github.com/Linguist
 ## Catalog:
 * `evaluation\IAM-evaluation-sample\`: Contains evaluation sample and results from an evaluation of the MS Azure Handwriting recognizer carried out on a sample of 100 documents from [the IAM Handwriting Database](http://www.fki.inf.unibe.ch/databases/iam-handwriting-database).  This is the sample that shows that the WER of the Azure tool is 13.64% on a laboratory-curated dataset.
 * `\evaluation\line-height-experiment`: Contains experimental materials and results that demonstrate the effect of line-height on Handwriting Recognition Performance, pencil vs. ink, and binarization.
-* TODO: Eric, would you like to add entries to catalog your output files?
+* `\raw_texts` : Contains automated transcripts of each page of documents. [Inventory](https://github.com/Linguistics575/575_OCR/raw_texts)
 
 ---
 The following change log mostly refers to code that has been moved to [our main repository](https://github.com/Linguistics575/unlocking-text-main), but it remains here for recordkeeping purposes.
