@@ -1,6 +1,8 @@
 ## OCR Text Inventory
 Each page of the following documents is contained in a separate text file in a directory named after the document.
 
+(A few documents were scanned with an earlier version of the scanner that extracted 100 pages at a time, and are therefore transcribed 100 pages at a time.)
+
 ### Travel Journals
 * 1807-sonnini-travels-in-upper-lower-egypt
 * 1843-murray-wilkinson-modern-egypt-and-thebes-vol2
